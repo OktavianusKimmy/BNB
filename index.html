@@ -575,10 +575,10 @@
         }
 
         // --- GANTI FUNGSI checkoutWA LAMA DENGAN 2 FUNGSI INI ---
-        function startPaymentProcess() {
+        async function startPaymentProcess() {
             if (cart.length === 0) return alert("Keranjang kosong!");
             
-            // Validasi Input (Sama seperti sebelumnya)
+            // --- VALIDASI INPUT ---
             const name = document.getElementById('cust-name').value.trim();
             const cls = document.getElementById('cust-class').value;
             const phone = document.getElementById('cust-phone').value.trim();
@@ -587,27 +587,50 @@
             if (!/^\d+$/.test(phone) || phone.length < 10) return alert("Nomor HP tidak valid (min 10 angka).");
             if (cls === "") return alert("Silakan pilih Kelas.");
 
-            // 1. Hitung Total + Kode Unik
+            // --- HITUNG TOTAL ---
             let baseTotal = cart.reduce((sum, item) => sum + (item.finalPrice * item.qty), 0);
-            lastUniqueCode = Math.floor(Math.random() * (99 - 10 + 1)) + 10;
+            lastUniqueCode = Math.floor(Math.random() * (99 - 10 + 1)) + 10; // Kode unik 2 digit (10-99)
             let finalTransferAmount = baseTotal + lastUniqueCode;
 
-            // 2. Generate QRIS Dinamis
-            let dynamicQR = generateDynamicQRIS(YOUR_STATIC_QRIS_STRING, finalTransferAmount);
-
-            // 3. Tampilkan di Modal Baru
+            // --- TAMPILKAN LOADING ---
+            // Tampilkan modal pembayaran dulu dengan status loading
             document.getElementById('payment-total').innerText = 'Rp ' + finalTransferAmount.toLocaleString('id-ID');
-            document.getElementById('qris-area').innerHTML = ""; // Bersihkan QR lama
-            new QRCode(document.getElementById('qris-area'), {
-                text: dynamicQR,
-                width: 200,
-                height: 200,
-                correctLevel : QRCode.CorrectLevel.L
-            });
-
-            // Pindah Modal
+            document.getElementById('qris-area').innerHTML = '<p style="opacity: 0.7;">⏳ Sedang membuat QRIS...</p>';
             toggleModal('cart-modal');
             setTimeout(() => toggleModal('payment-modal'), 300);
+
+            try {
+                // --- PANGGIL BACKEND VERCEL ---
+                // Ini adalah jembatan ke server Anda
+                const response = await fetch('/api/generate-qris', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: finalTransferAmount })
+                });
+
+                if (!response.ok) throw new Error("Gagal menghubungi server pembuatan QRIS");
+
+                const data = await response.json();
+
+                if (data.qr_string) {
+                    // --- SUKSES DAPAT DATA DARI BACKEND ---
+                    // Render ulang QR Code dengan string dari server
+                    document.getElementById('qris-area').innerHTML = ""; 
+                    new QRCode(document.getElementById('qris-area'), {
+                        text: data.qr_string,
+                        width: 200,
+                        height: 200,
+                        correctLevel : QRCode.CorrectLevel.L
+                    });
+                } else {
+                    throw new Error("Data QRIS tidak valid dari server");
+                }
+
+            } catch (error) {
+                console.error("QRIS Error:", error);
+                alert("Maaf, gagal memuat QRIS. Silakan coba lagi atau hubungi admin.");
+                toggleModal('payment-modal'); // Tutup modal jika gagal
+            }
         }
 
         // --- GANTI FUNGSI confirmPaymentWA LAMA DENGAN INI ---
