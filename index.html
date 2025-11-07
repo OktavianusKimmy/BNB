@@ -298,9 +298,14 @@
             margin-right: 5px; /* Jarak ikon ke teks */
         }
 
-        /* Akhir CSS Tambahan */
-        
-        /* --- Akhir CSS Tambahan --- */
+        /* --- FIX TAMPILAN IPHONE/MOBILE --- */
+        @media (max-width: 480px) {
+            /* Tambah ganjalan di bawah tombol keranjang agar tidak ketutup browser HP */
+            #cart-modal .modal-footer {
+                padding-bottom: 100px;      /* Ruang ekstra yang cukup besar */
+                padding-bottom: calc(20px + env(safe-area-inset-bottom, 100px)); /* Versi lebih modern untuk HP poni/dynamic island */
+            }
+        }
     </style>
 </head>
 <body>
