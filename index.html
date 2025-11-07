@@ -361,7 +361,7 @@
             {
                 category: "DRINKS",
                 items: [
-                    { id: 1, name: "Americano", price: 10000, supportsAddons: true },
+                    { id: 1, name: "Americano", price: 0, supportsAddons: true },
                     { id: 2, name: "Latte", price: 13000, supportsAddons: true },
                     { id: 3, name: "Oat Latte", price: 15000, supportsAddons: true },
                     { id: 4, name: "B&B Latte \u2605", price: 15000, desc: "Signature Drink", supportsAddons: true },
@@ -589,7 +589,7 @@
 
             // --- HITUNG TOTAL ---
             let baseTotal = cart.reduce((sum, item) => sum + (item.finalPrice * item.qty), 0);
-            lastUniqueCode = Math.floor(Math.random() * (99 - 10 + 1)) + 10; // Kode unik 2 digit (10-99)
+            lastUniqueCode = 1 //Math.floor(Math.random() * (99 - 10 + 1)) + 10; // Kode unik 2 digit (10-99)
             let finalTransferAmount = baseTotal + lastUniqueCode;
 
             // --- TAMPILKAN LOADING ---
