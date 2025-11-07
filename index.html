@@ -142,27 +142,28 @@
         }
         /* Tambahan untuk memastikan modal pembayaran selalu paling atas */
         /* --- CSS TAMBAHAN UNTUK MODAL PEMBAYARAN --- */
-        /* Pastikan modal pembayaran di atas segalanya */
         #payment-modal {
             z-index: 200;
-            display: flex; /* Menggunakan flex untuk pemusatan yang lebih baik */
+            display: flex;
             align-items: center;
             justify-content: center;
         }
 
         /* Gaya Konten Modal Pembayaran */
         #payment-modal .modal-content {
-            position: relative; /* Relatif terhadap flex container */
-            top: auto; left: auto; right: auto; bottom: auto; /* Reset posisi absolute jika ada */
-            transform: none; /* Reset transform jika ada */
+            position: relative;
+            top: auto; left: auto; right: auto; bottom: auto;
+            transform: none;
             width: 90%;
             max-width: 380px;
-            background-color: var(--card-bg); /* Gunakan variabel warna tema */
+            background-color: var(--card-bg);
             border-radius: 20px;
             border: 2px solid var(--accent-color);
             box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-            overflow: hidden; /* Agar sudut border-radius tidak terpotong */
-            animation: slideUp 0.4s ease forwards; /* Animasi masuk */
+            overflow: hidden;
+            animation: slideUp 0.4s ease forwards;
+            /* Tambahan: Padding internal agar tidak terlalu mepet */
+            padding-bottom: 20px; /* Memberi ruang di bagian bawah */
         }
 
         @keyframes slideUp {
@@ -175,6 +176,9 @@
             background-color: #1a1a4a;
             padding: 15px 20px;
             border-bottom: 2px solid var(--accent-color);
+            /* Tambahan: Text-align center untuk judul */
+            justify-content: center; /* Pusatkan judul */
+            position: relative; /* Untuk posisi tombol close */
         }
         #payment-modal .modal-header h3 {
             font-family: 'Limelight', cursive;
@@ -182,13 +186,24 @@
             margin: 0;
             font-size: 1.4rem;
         }
+        /* Tombol close di modal pembayaran */
+        #payment-modal .modal-header .close-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--accent-color); /* Warna lebih serasi */
+            font-size: 1.8rem;
+            padding: 0 5px; /* Sedikit padding agar mudah diklik */
+        }
+
 
         /* Body Modal */
         #payment-modal .modal-body {
             padding: 25px 20px;
             text-align: center;
-            max-height: 70vh; /* Batasi tinggi agar tidak melebihi layar */
-            overflow-y: auto; /* Scroll jika konten terlalu panjang */
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         /* Area QRIS */
@@ -197,52 +212,93 @@
             padding: 15px;
             border-radius: 15px;
             margin: 20px auto;
-            width: fit-content; /* Lebar menyesuaikan konten */
+            width: fit-content;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            /* Tambahan: Centering QR Code jika ada loading text */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px; /* Tinggi minimum agar loading text di tengah */
         }
         #qris-area img {
-            display: block; /* Menghilangkan gap di bawah gambar */
+            display: block;
+            border-radius: 10px; /* Sudut lebih halus untuk QR */
         }
+        /* Gaya untuk loading text QRIS */
+        #qris-area p {
+            color: #555; /* Warna teks loading lebih kalem */
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
 
         /* Kotak Total */
         .total-box {
             background-color: #15153a;
-            padding: 15px;
-            border-radius: 12px;
-            border: 2px dashed var(--accent-color);
-            margin: 20px 0;
+            padding: 18px 20px; /* Padding sedikit lebih besar */
+            border-radius: 15px; /* Sudut lebih membulat */
+            border: 2px dashed #6b6bb5; /* Warna dashed border lebih gelap, tapi masih accent */
+            margin: 25px 0; /* Margin lebih besar */
         }
         #payment-total {
             font-family: 'Limelight', cursive;
-            color: #25D366; /* Warna hijau untuk uang */
-            font-size: 2.2rem;
+            /* Ganti warna hijau norak ke warna accent-color tema, lebih elegan */
+            color: var(--accent-color);
+            font-size: 2.8rem; /* Lebih besar lagi */
             display: block;
-            margin-top: 5px;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            margin-top: 8px; /* Jarak dari teks di atasnya */
+            text-shadow: 0 3px 8px rgba(0,0,0,0.4); /* Bayangan lebih halus */
+            letter-spacing: 1px; /* Sedikit jarak antar huruf */
         }
+        .total-box span:first-child { /* Teks "Total yang harus dibayar:" */
+            font-size: 1rem; /* Sedikit lebih besar */
+            opacity: 0.8;
+            color: #eee; /* Warna putih gading */
+        }
+
+        /* Instruksi Pembayaran */
+        #payment-modal .modal-body > p { /* Target p setelah total-box */
+            font-size: 0.9rem;
+            opacity: 0.8; /* Sedikit lebih jelas */
+            margin-bottom: 25px;
+            line-height: 1.4;
+            color: #eee;
+        }
+
 
         /* Tombol Konfirmasi WA */
         .btn-whatsapp-confirm {
-            background: linear-gradient(45deg, #25D366, #128C7E);
+            background: linear-gradient(45deg, #25D366 10%, #128C7E 90%); /* Gradasi yang lebih halus */
             width: 100%;
-            padding: 15px;
+            padding: 16px; /* Lebih tebal */
             border: none;
-            border-radius: 12px;
+            border-radius: 15px; /* Sudut lebih membulat */
             color: white;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1.15rem; /* Sedikit lebih besar */
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.3s; /* Transisi lebih banyak */
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            box-shadow: 0 5px 15px rgba(37, 211, 102, 0.3);
+            gap: 12px; /* Jarak ikon dan teks */
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4); /* Bayangan lebih kuat */
+            text-transform: uppercase; /* Agar konsisten dengan desain */
+            letter-spacing: 0.5px;
         }
         .btn-whatsapp-confirm:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.5);
+            transform: translateY(-4px); /* Efek melayang lebih terasa */
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.6); /* Bayangan lebih kuat saat hover */
+            background: linear-gradient(45deg, #128C7E 10%, #25D366 90%); /* Ubah arah gradasi saat hover */
         }
+
+        .btn-whatsapp-confirm svg {
+            width: 26px; /* Ikon sedikit lebih besar */
+            height: 26px;
+            margin-right: 5px; /* Jarak ikon ke teks */
+        }
+
+        /* Akhir CSS Tambahan */
         
         /* --- Akhir CSS Tambahan --- */
     </style>
@@ -331,19 +387,19 @@
             </div>
             
             <div class="modal-body">
-                <p style="opacity: 0.9; font-size: 0.95rem;">
-                    Scan QRIS ini. Nominal akan <strong>otomatis muncul</strong> di aplikasi pembayaran Anda.
+                <p style="opacity: 0.9; font-size: 0.95rem; color: #e0e0e0; margin-bottom: 15px;">
+                    Scan QRIS di bawah ini. Nominal akan **otomatis muncul** di aplikasi pembayaran Anda.
                 </p>
                 
                 <div id="qris-area"></div>
 
                 <div class="total-box">
-                    <span style="display: block; font-size: 0.9rem; opacity: 0.7; margin-bottom: 5px;">Total yang harus dibayar:</span>
+                    <span style="display: block; font-size: 0.9rem; opacity: 0.7; margin-bottom: 5px;">Total yang perlu dibayar:</span>
                     <span id="payment-total">Rp 0</span>
                 </div>
 
-                <p style="font-size: 0.85rem; opacity: 0.6; margin-bottom: 25px;">
-                    Pastikan nominal di aplikasi sama persis dengan total di atas sebelum membayar.
+                <p style="font-size: 0.85rem; opacity: 0.7; margin-bottom: 25px; color: #d0d0d0;">
+                    Mohon pastikan nominal yang muncul di aplikasi Anda sudah **sama persis** dengan total di atas.
                 </p>
 
                 <button class="btn-whatsapp-confirm" onclick="confirmOrderAutomatic()">
