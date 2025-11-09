@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - Brew & Beats</title>
+    <link href="https://fonts.googleapis.com/css2?family=Limelight&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Gunakan CSS dasar yang sama dengan index.html --- */
+        :root { --bg-color: #19194d; --accent-color: #a4a4e0; --text-color: #ffffff; --card-bg: #24245e; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Montserrat', sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; text-align: center; }
+        h1 { font-family: 'Limelight', cursive; color: var(--accent-color); margin-bottom: 10px; }
+        
+        /* --- CSS Khusus Leaderboard --- */
+        .leaderboard-list {
+            margin-top: 30px;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        .rank-item {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: 1px solid var(--accent-color);
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 1.1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+        .rank-item:hover { transform: scale(1.02); }
+        /* Juara 1, 2, 3 beda warna */
+        .rank-1 { background: linear-gradient(45deg, #FFD700, #FFA500); color: #19194d; font-weight: bold; border: none; }
+        .rank-2 { background: linear-gradient(45deg, #C0C0C0, #E8E8E8); color: #19194d; font-weight: bold; border: none; }
+        .rank-3 { background: linear-gradient(45deg, #CD7F32, #DAA520); color: #19194d; font-weight: bold; border: none; }
+
+        .rank-num { font-family: 'Limelight', cursive; font-size: 1.5rem; width: 40px; }
+        .class-name { flex-grow: 1; text-align: left; padding-left: 15px; }
+        .total-spent { font-weight: bold; }
+
+        .btn-back {
+            display: inline-block; margin-top: 40px; padding: 10px 25px;
+            background: transparent; color: var(--accent-color);
+            border: 2px solid var(--accent-color); border-radius: 30px;
+            text-decoration: none; font-weight: bold; transition: all 0.2s;
+        }
+        .btn-back:hover { background: var(--accent-color); color: var(--bg-color); }
+        #loading { margin-top: 50px; opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>KLASEMEN SULTAN</h1>
+        <p>Kelas mana yang paling banyak jajan?</p>
+
+        <div id="loading">⏳ Sedang menghitung kekayaan...</div>
+        <div id="leaderboard-container" class="leaderboard-list"></div>
+
+        <a href="/" class="btn-back">← Kembali ke Menu</a>
+    </div>
+
+    <script>
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('/api/get-leaderboard');
+                const data = await response.json();
+                
+                const container = document.getElementById('leaderboard-container');
+                document.getElementById('loading').style.display = 'none';
+
+                if (data.length === 0) {
+                    container.innerHTML = '<p>Belum ada data transaksi.</p>';
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const rank = index + 1;
+                    let rankClass = '';
+                    if (rank === 1) rankClass = 'rank-1';
+                    else if (rank === 2) rankClass = 'rank-2';
+                    else if (rank === 3) rankClass = 'rank-3';
+
+                    container.innerHTML += `
+                        <div class="rank-item ${rankClass}">
+                            <div class="rank-num">#${rank}</div>
+                            <div class="class-name">${item.kelas}</div>
+                            <div class="total-spent">Rp ${item.total.toLocaleString('id-ID')}</div>
+                        </div>
+                    `;
+                });
+
+            } catch (error) {
+                document.getElementById('loading').innerText = 'Gagal memuat data.';
+                console.error(error);
+            }
+        }
+
+        loadLeaderboard();
+    </script>
+</body>
+</html>
