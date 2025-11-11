@@ -70,7 +70,7 @@ module.exports = async (req, res) => {
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {
                     values: [[
-                        today, orderId, name, classInfo, phone, items, finalTotal, 'Perlu Verifikasi', 'false'
+                        today, orderId, name, classInfo, phone, items, finalTotal, 'Perlu Verifikasi', FALSE
                     ]]
                 }
             });
