@@ -70,13 +70,13 @@ module.exports = async (req, res) => {
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {
                     values: [[
-                        today, orderId, name, classInfo, phone, items, finalTotal, 'Perlu Verifikasi', False
+                        today, orderId, name, classInfo, phone, items, finalTotal, 'Perlu Verifikasi', FALSE
                     ]]
                 }
             });
 
         } catch (sheetError) {
-            console.error("Google Sheets Error:", sheetError.message);
+            console.error("Google Sheets Error: Hubungi CP dan berikan screenshot ini beserta bukti transfer!", sheetError.message);
             // Optional: Jika sheets gagal, kita tetap anggap sukses agar user tidak panik,
             // karena notif Telegram sudah masuk.
         }
