@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
             // Menulis baris baru ke Sheet
             await sheets.spreadsheets.values.append({
                 spreadsheetId: process.env.SHEET_ID,
-                range: 'Sheet1!A:H', // Pastikan nama sheet Anda benar "Sheet1"
+                range: 'Sheet1!A:I', // Pastikan nama sheet Anda benar "Sheet1"
                 valueInputOption: 'USER_ENTERED',
                 requestBody: {
                     values: [[
