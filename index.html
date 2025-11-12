@@ -597,7 +597,7 @@
             const cls = document.getElementById('cust-class').value;
             const phone = document.getElementById('cust-phone').value.trim();
             if (!name || !cls || !phone) return alert("Mohon lengkapi semua data diri.");
-            if (name.length <= 5) return alert("Nama harus lebih dari 5 huruf.");
+            if (name.length <= 3) return alert("Nama harus lebih dari 3 huruf.");
             if (!/^\d+$/.test(phone) || phone.length < 10) return alert("Nomor HP tidak valid (min 10 angka).");
             if (cls === "") return alert("Silakan pilih Kelas.");
 
