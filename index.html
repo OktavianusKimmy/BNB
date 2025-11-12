@@ -24,7 +24,13 @@
 
         /* --- Header --- */
         header {
+            cursor: pointer;
             text-align: center; margin-bottom: 40px; border: 2px solid var(--accent-color); padding: 20px; position: relative;
+            transition: transform 0.2s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        header:hover{
+            transform: scale(1.05); /* Naik sedikit dan scale up sedikit */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); /* Bayangan lebih kuat */
         }
         header::before, header::after {
             content: ''; position: absolute; width: 10px; height: 10px; border: 2px solid var(--accent-color); background: var(--bg-color);
@@ -259,7 +265,7 @@
 <body>
 
     <div class="container">
-        <header>
+        <header onclick="window.location.href='leaderboard.html'">
             <h1>Brew & Beats</h1>
             <h2>SYMPHONY OF TALENT</h2>
         </header>
@@ -271,11 +277,11 @@
         <span>🛒 Keranjang</span><span class="cart-count" id="cart-count">0</span>
     </div>
 
-    <a href="/leaderboard.html" style="position: fixed; bottom: 20px; left: 20px; background-color: #1a1a4a; color: var(--accent-color); padding: 15px; border-radius: 50%; border: 2px solid var(--accent-color); box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 98; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+    <!-- <a href="/leaderboard.html" style="position: fixed; bottom: 20px; left: 20px; background-color: #1a1a4a; color: var(--accent-color); padding: 15px; border-radius: 50%; border: 2px solid var(--accent-color); box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 98; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
         </svg>
-    </a>
+    </a> -->
 
     <div id="custom-modal" class="modal">
         <div class="modal-overlay" onclick="toggleModal('custom-modal')"></div>
