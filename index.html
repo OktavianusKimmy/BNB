@@ -260,10 +260,70 @@
         }
         .btn-whatsapp-confirm:hover { filter: brightness(1.1); transform: translateY(-2px); }
         /* --- AKHIR CSS MODAL PREMIUM --- */
+        #countdown-banner {
+            background: linear-gradient(45deg, var(--accent-color), #c084fc); /* Gradasi ungu yang menarik */
+            color: var(--bg-color); /* Teks gelap agar kontras */
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            text-align: center;
+            padding: 10px 15px;
+            
+            /* Ini yang membuatnya menempel di atas */
+            position: sticky;
+            top: 0;
+            z-index: 1000; /* Pastikan di atas segalanya, kecuali modal */
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap; /* Agar rapi di HP */
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        #timer {
+            display: flex;
+            gap: 10px;
+            font-weight: 800;
+        }
+
+        #timer > div {
+            background: rgba(0,0,0,0.1);
+            padding: 5px 10px;
+            border-radius: 5px;
+            min-width: 60px; /* Agar lebar kotak seragam */
+        }
+
+        #timer span {
+            font-family: 'Montserrat', sans-serif; /* Pakai font angka yang keren */
+            font-size: 1.5rem;
+            display: block;
+            line-height: 1.1;
+        }
+
+        /* Tampilan di HP */
+        @media (max-width: 480px) {
+            #countdown-banner {
+                flex-direction: column;
+                gap: 5px;
+                padding: 8px;
+            }
+            #timer { gap: 5px; }
+            #timer > div { padding: 3px 6px; min-width: 50px; }
+            #timer span { font-size: 1.2rem; }
+        }
     </style>
 </head>
 <body>
-
+    <div id="countdown-banner">
+        Pre-Order Ditutup Dalam: 
+        <div id="timer">
+            <div><span id="days">0</span> Hari</div>
+            <div><span id="hours">0</span> Jam</div>
+            <div><span id="minutes">0</span> Menit</div>
+            <div><span id="seconds">0</span> Detik</div>
+        </div>
+    </div>
     <div class="container">
         <header onclick="window.location.href='leaderboard.html'">
             <h1>Brew & Beats</h1>
@@ -400,6 +460,35 @@
             { id: 'ao2', name: "Extra Sugar", price: 2000 },
             { id: 'ao3', name: "Less Sugar", price: 0 }
         ];
+        function startCountdown() {
+            // Tetapkan tanggal akhir: 19 November 2025, 23:59:59
+            const countdownDate = new Date("November 19, 2025 23:59:59").getTime();
+
+            const timerInterval = setInterval(function() {
+                const now = new Date().getTime();
+                const distance = countdownDate - now;
+
+                // Perhitungan waktu
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                // Tampilkan di HTML
+                document.getElementById("days").innerText = days;
+                document.getElementById("hours").innerText = hours;
+                document.getElementById("minutes").innerText = minutes;
+                document.getElementById("seconds").innerText = seconds;
+
+                // Jika waktu habis
+                if (distance < 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
+                    // Opsional: Sembunyikan semua tombol "Tambah ke Keranjang"
+                    document.querySelectorAll('.btn-add').forEach(btn => btn.disabled = true);
+                }
+            }, 1000);
+        }
 
         let cart = [];
         let currentCustomItem = null; // Menyimpan sementara item yang sedang dikustomisasi
@@ -710,7 +799,10 @@
         }
         // --- AKHIR FUNGSI PENGGANTI ---
 
-        document.addEventListener('DOMContentLoaded', renderMenu);
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMenu();
+            startCountdown(); // <-- TAMBAHKAN BARIS INI
+        });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
