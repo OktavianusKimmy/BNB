@@ -312,6 +312,56 @@
             #timer > div { padding: 3px 6px; min-width: 50px; }
             #timer span { font-size: 1.2rem; }
         }
+        /* --- CSS UNTUK PO DITUTUP --- */
+        .po-closed-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(25, 25, 77, 0.9); /* Latar gelap transparan */
+            backdrop-filter: blur(10px); /* Blur konten di belakang */
+            z-index: 999; /* Di bawah countdown banner, di atas segalanya */
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .overlay-content h2 {
+            font-family: 'Limelight', cursive;
+            color: var(--accent-color);
+            font-size: 2.5rem;
+            text-shadow: 0 0 15px var(--accent-color);
+        }
+        .overlay-content p {
+            font-size: 1.1rem;
+            color: #eee;
+            margin-bottom: 30px;
+        }
+        .overlay-content a {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 12px 25px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-radius: 30px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .overlay-content a:hover {
+            background: #fff;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body>
@@ -483,9 +533,25 @@
                 // Jika waktu habis
                 if (distance < 0) {
                     clearInterval(timerInterval);
+                    
+                    // 1. Ubah banner atas
                     document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
-                    // Opsional: Sembunyikan semua tombol "Tambah ke Keranjang"
-                    document.querySelectorAll('.btn-add').forEach(btn => btn.disabled = true);
+                    
+                    // 2. Buat dan tampilkan overlay
+                    const overlay = document.createElement('div');
+                    overlay.className = 'po-closed-overlay';
+                    overlay.innerHTML = `
+                        <div class="overlay-content">
+                            <h2>Pre-Order Telah Ditutup</h2>
+                            <p>Terima kasih atas partisipasinya! Sampai jumpa di PO berikutnya.</p>
+                            <a href="/leaderboard.html">Lihat Klasemen Akhir</a>
+                        </div>
+                    `;
+                    document.body.appendChild(overlay);
+
+                    // 3. Sembunyikan tombol keranjang (karena sudah tidak relevan)
+                    const cartButton = document.getElementById('floating-cart');
+                    if (cartButton) cartButton.style.display = 'none';
                 }
             }, 1000);
         }
