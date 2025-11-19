@@ -6,27 +6,6 @@
     <title>Brew & Beats - Symphony of Talent</title>
     <link href="https://fonts.googleapis.com/css2?family=Limelight&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Badge Stok */
-        .stock-badge {
-            font-size: 0.75rem;
-            background-color: #ff9800; /* Oranye peringatan */
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 10px;
-            margin-left: 8px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        .stock-habis {
-            background-color: #ff4d4d; /* Merah */
-            color: white;
-        }
-        /* Style untuk item yang habis (abu-abu) */
-        .menu-item.sold-out {
-            opacity: 0.6;
-            pointer-events: none; /* Tidak bisa diklik */
-            filter: grayscale(1);
-        }
         /* Style untuk item yang Sold Out */
         .menu-item.sold-out {
             opacity: 0.6; /* Membuat agak transparan */
@@ -526,7 +505,7 @@
             {
                 category: "TREATS",
                 items: [ // Treats biasanya tidak pakai extra shot/sugar, jadi supportsAddons false/undefined
-                    { id: 7, name: "Sosis Bakar", price: 8000},
+                    { id: 7, name: "Sosis Bakar", price: 8000, isSoldOut: false},
                     { id: 8, name: "Ice Cream Cone", price: 7000 }
                 ]
             }
@@ -807,32 +786,6 @@
             if (!/^\d+$/.test(phone) || phone.length < 10) return alert("Nomor HP tidak valid (min 10 angka).");
             if (cls === "") return alert("Silakan pilih Kelas.");
 
-            // --- TAMBAHAN: CEK STOK SOSIS SEBELUM BAYAR ---
-            // Cek apakah ada sosis di keranjang
-            const sosisItem = cart.find(item => item.productId === 7); // ID 7 adalah Sosis
-            if (sosisItem) {
-                // Tampilkan loading sebentar
-                const btn = document.querySelector('.btn-whatsapp-confirm'); // atau tombol lanjut pembayaran
-                if(btn) btn.innerHTML = "⏳ Cek Stok...";
-
-                try {
-                    const response = await fetch('/api/get-stock');
-                    const data = await response.json();
-
-                    // Jika sisa kurang dari yang mau dibeli
-                    if (data.remaining < sosisItem.qty) {
-                        alert(`Maaf, stok Sosis Bakar barusan berubah!\n\nSisa stok saat ini: ${data.remaining}\nAnda memesan: ${sosisItem.qty}\n\nMohon kurangi jumlah pesanan Anda.`);
-                        toggleModal('payment-modal'); // Tutup modal bayar
-                        toggleModal('cart-modal'); // Buka lagi keranjang
-                        return; // BATALKAN PROSES BAYAR
-                    }
-                } catch (e) {
-                    console.error("Gagal cek stok final", e);
-                    // Lanjut saja kalau server error, anggap rejeki
-                }
-            }
-            // ------------------------------------------------
-
             // --- HITUNG TOTAL ---
             let baseTotal = cart.reduce((sum, item) => sum + (item.finalPrice * item.qty), 0);
             lastUniqueCode = Math.floor(Math.random() * (99 - 10 + 1)) + 10; // Kode unik 2 digit (10-99)
@@ -939,56 +892,11 @@
                 btn.disabled = false;
             }
         }
-
-        async function checkStockSosis() {
-            // ID Sosis Bakar di MENU_DATA adalah 7
-            const sosisId = 7; 
-            
-            try {
-                const response = await fetch('/api/get-stock');
-                const data = await response.json();
-
-                // Cari elemen Sosis di HTML (Kita perlu cara untuk memilihnya)
-                // Cara termudah: Loop tombol add dan cari yang onclick-nya mengandung ID 7
-                const buttons = document.querySelectorAll('.btn-add');
-                
-                buttons.forEach(btn => {
-                    // Cek apakah tombol ini milik Sosis Bakar (ID 7)
-                    if (btn.getAttribute('onclick').includes(`(${sosisId})`)) {
-                        const itemContainer = btn.closest('.menu-item');
-                        const nameDiv = itemContainer.querySelector('.item-name');
-
-                        if (data.isSoldOut) {
-                            // JIKA HABIS
-                            itemContainer.classList.add('sold-out');
-                            btn.disabled = true;
-                            btn.innerText = "X";
-                            btn.style.backgroundColor = "#555";
-                            
-                            // Tambah label HABIS
-                            nameDiv.innerHTML += ` <span class="stock-badge stock-habis">HABIS</span>`;
-                        } else {
-                            // JIKA MASIH ADA
-                            // Tambah label Sisa
-                            nameDiv.innerHTML += ` <span class="stock-badge">Sisa ${data.remaining}</span>`;
-                            
-                            // Update logika agar user tidak bisa beli lebih dari sisa stok di keranjang
-                            // (Opsional: bisa ditambahkan validasi keranjang nanti)
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error("Gagal memuat stok sosis", error);
-            }
-        }
-
         // --- AKHIR FUNGSI PENGGANTI ---
 
         document.addEventListener('DOMContentLoaded', () => {
             renderMenu();
             startCountdown(); // <-- TAMBAHKAN BARIS INI
-            checkStockSosis();
         });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
