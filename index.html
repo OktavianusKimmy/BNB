@@ -542,24 +542,46 @@
                 if (distance < 0) {
                     clearInterval(timerInterval);
                     
-                    // 1. Ubah banner atas
-                    document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
-                    
-                    // 2. Buat dan tampilkan overlay
-                    const overlay = document.createElement('div');
-                    overlay.className = 'po-closed-overlay';
-                    overlay.innerHTML = `
-                        <div class="overlay-content">
-                            <h2>Pre-Order Telah Ditutup</h2>
-                            <p>Terima kasih atas partisipasinya! Sampai jumpa di PO berikutnya.</p>
-                            <a href="/leaderboard.html">Lihat Klasemen Akhir</a>
-                        </div>
-                    `;
-                    document.body.appendChild(overlay);
+                    // Cek apakah browser ini sudah login sebagai Admin
+                    const isAdmin = localStorage.getItem("adminAccess") === "true";
 
-                    // 3. Sembunyikan tombol keranjang (karena sudah tidak relevan)
-                    const cartButton = document.getElementById('floating-cart');
-                    if (cartButton) cartButton.style.display = 'none';
+                    if (isAdmin) {
+                        // --- SKENARIO ADMIN ---
+                        // 1. Ubah banner jadi merah biar Admin sadar ini mode khusus
+                        const banner = document.getElementById("countdown-banner");
+                        banner.innerHTML = "⚠️ MODE ADMIN (PO SUDAH TUTUP UNTUK PUBLIK) ⚠️";
+                        banner.style.background = "#ff4d4d"; // Warna merah
+                        
+                        // 2. Pastikan tombol beli tetap aktif (hapus status disabled jika ada)
+                        document.querySelectorAll('.btn-add').forEach(btn => {
+                            // Cek stok sosis manual (karena logika stok terpisah)
+                            if(!btn.innerText.includes("HABIS")) btn.disabled = false;
+                        });
+
+                    } else {
+                        // --- SKENARIO PENGUNJUNG BIASA (TUTUP WEB) ---
+                        
+                        document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
+                        
+                        // Buat overlay penutup
+                        const overlay = document.createElement('div');
+                        overlay.className = 'po-closed-overlay';
+                        overlay.innerHTML = `
+                            <div class="overlay-content">
+                                <h2 onclick="secretAdminLogin()" style="cursor: default;">Pre-Order Telah Ditutup</h2>
+                                <p>Terima kasih atas partisipasinya! Sampai jumpa di PO berikutnya.</p>
+                                <a href="/leaderboard.html">Lihat Klasemen Akhir</a>
+                            </div>
+                        `;
+                        document.body.appendChild(overlay);
+
+                        // Sembunyikan tombol keranjang
+                        const cartButton = document.getElementById('floating-cart');
+                        if (cartButton) cartButton.style.display = 'none';
+                        
+                        // Matikan tombol beli di belakang layar
+                        document.querySelectorAll('.btn-add').forEach(btn => btn.disabled = true);
+                    }
                 }
             }, 1000);
         }
@@ -898,6 +920,36 @@
             renderMenu();
             startCountdown(); // <-- TAMBAHKAN BARIS INI
         });
+        let secretClicks = 0;
+
+        function secretAdminLogin() {
+            secretClicks++;
+            console.log("Klik rahasia: " + secretClicks);
+
+            // Jika diklik 2 kali
+            if (secretClicks === 2) {
+                // Minta password
+                const password = prompt("Masukkan Password Admin untuk membuka akses:");
+                
+                // GANTI 'rahasia123' DENGAN PASSWORD YANG ANDA MAU
+                if (password === "deandra123") { 
+                    // Simpan "kunci" di browser ini
+                    localStorage.setItem("adminAccess", "true");
+                    alert("Akses Admin Diberikan! Website akan terbuka untuk Anda.");
+                    location.reload(); // Refresh halaman untuk masuk mode admin
+                } else {
+                    alert("Password salah!");
+                    secretClicks = 0; // Reset klik
+                }
+            }
+        }
+
+        // Fitur Logout (Opsional, buat jaga-jaga kalau mau tes jadi user biasa lagi)
+        // Ketik 'logoutAdmin()' di Console browser untuk keluar.
+        function logoutAdmin() {
+            localStorage.removeItem("adminAccess");
+            location.reload();
+        }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
