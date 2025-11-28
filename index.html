@@ -542,28 +542,12 @@
                 if (distance < 0) {
                     clearInterval(timerInterval);
                     
-                    // Cek apakah browser ini sudah login sebagai Admin
-                    const isAdmin = localStorage.getItem("adminAccess") === "true";
-
-                    if (isAdmin) {
-                        // --- SKENARIO ADMIN ---
-                        // 1. Ubah banner jadi merah biar Admin sadar ini mode khusus
-                        const banner = document.getElementById("countdown-banner");
-                        banner.innerHTML = "⚠️ MODE ADMIN (PO SUDAH TUTUP UNTUK PUBLIK) ⚠️";
-                        banner.style.background = "#ff4d4d"; // Warna merah
-                        
-                        // 2. Pastikan tombol beli tetap aktif (hapus status disabled jika ada)
-                        document.querySelectorAll('.btn-add').forEach(btn => {
-                            // Cek stok sosis manual (karena logika stok terpisah)
-                            if(!btn.innerText.includes("HABIS")) btn.disabled = false;
-                        });
-
-                    } else {
-                        // --- SKENARIO PENGUNJUNG BIASA (TUTUP WEB) ---
-                        
-                        document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
-                        
-                        // Buat overlay penutup
+                    // Default: SELALU KUNCI WEBSITE (Setiap refresh akan masuk sini)
+                    document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
+                    
+                    // 1. Tampilkan Overlay
+                    // Cek dulu biar overlay gak dobel kalau interval jalan
+                    if (!document.querySelector('.po-closed-overlay')) {
                         const overlay = document.createElement('div');
                         overlay.className = 'po-closed-overlay';
                         overlay.innerHTML = `
@@ -574,14 +558,14 @@
                             </div>
                         `;
                         document.body.appendChild(overlay);
-
-                        // Sembunyikan tombol keranjang
-                        const cartButton = document.getElementById('floating-cart');
-                        if (cartButton) cartButton.style.display = 'none';
-                        
-                        // Matikan tombol beli di belakang layar
-                        document.querySelectorAll('.btn-add').forEach(btn => btn.disabled = true);
                     }
+
+                    // 2. Sembunyikan Tombol Keranjang
+                    const cartButton = document.getElementById('floating-cart');
+                    if (cartButton) cartButton.style.display = 'none';
+                    
+                    // 3. Matikan Tombol Beli
+                    document.querySelectorAll('.btn-add').forEach(btn => btn.disabled = true);
                 }
             }, 1000);
         }
@@ -922,24 +906,62 @@
         });
         let secretClicks = 0;
 
-        function secretAdminLogin() {
+        async function secretAdminLogin() {
             secretClicks++;
-            console.log("Klik rahasia: " + secretClicks);
+            console.log("Klik: " + secretClicks);
 
-            // Jika diklik 2 kali
             if (secretClicks === 2) {
-                // Minta password
-                const password = prompt("Masukkan Password Admin untuk membuka akses:");
-                
-                // GANTI 'rahasia123' DENGAN PASSWORD YANG ANDA MAU
-                if (password === "deandra123") { 
-                    // Simpan "kunci" di browser ini
-                    localStorage.setItem("adminAccess", "true");
-                    alert("Akses Admin Diberikan! Website akan terbuka untuk Anda.");
-                    location.reload(); // Refresh halaman untuk masuk mode admin
-                } else {
-                    alert("Password salah!");
-                    secretClicks = 0; // Reset klik
+                const passwordInput = prompt("Masukkan Password Admin:");
+                if (!passwordInput) { secretClicks = 0; return; }
+
+                const btn = document.querySelector('.overlay-content h2');
+                const oriText = btn.innerText;
+                btn.innerText = "⏳ Membuka Akses...";
+
+                try {
+                    // Cek password ke backend
+                    const response = await fetch('/api/check-admin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: passwordInput })
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // --- JIKA PASSWORD BENAR ---
+                        alert("Mode Admin Aktif! (Akses akan hilang jika di-refresh)");
+
+                        // 1. Hapus Overlay Pengganggu
+                        const overlay = document.querySelector('.po-closed-overlay');
+                        if (overlay) overlay.remove();
+
+                        // 2. Ubah Banner Atas
+                        const banner = document.getElementById("countdown-banner");
+                        banner.innerHTML = "⚠️ MODE ADMIN SEMENTARA";
+                        banner.style.background = "#ff4d4d";
+
+                        // 3. Munculkan Tombol Keranjang Lagi
+                        const cartButton = document.getElementById('floating-cart');
+                        if (cartButton) cartButton.style.display = 'flex';
+
+                        // 4. Hidupkan Tombol Beli
+                        document.querySelectorAll('.btn-add').forEach(btn => {
+                            // Hanya hidupkan yg tidak sold out dari sananya
+                            if(!btn.innerText.includes("HABIS")) btn.disabled = false;
+                        });
+
+                    } else {
+                        alert("Password Salah!");
+                        btn.innerText = oriText;
+                    }
+                    // Reset klik agar bisa coba lagi
+                    secretClicks = 0; 
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Gagal menghubungi server.");
+                    secretClicks = 0;
+                    btn.innerText = oriText;
                 }
             }
         }
