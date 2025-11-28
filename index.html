@@ -505,7 +505,7 @@
             {
                 category: "TREATS",
                 items: [ // Treats biasanya tidak pakai extra shot/sugar, jadi supportsAddons false/undefined
-                    { id: 7, name: "Sosis Bakar", price: 8000, isSoldOut: false},
+                    { id: 7, name: "Sosis Bakar", price: 8000, isSoldOut: true},
                     { id: 8, name: "Ice Cream Cone", price: 7000 }
                 ]
             }
@@ -520,7 +520,7 @@
         ];
         function startCountdown() {
             // Tetapkan tanggal akhir: 19 November 2025, 23:59:59
-            const countdownDate = new Date("November 28, 2025 23:59:59").getTime();
+            const countdownDate = new Date("November 19, 2025 23:59:59").getTime();
 
             const timerInterval = setInterval(function() {
                 const now = new Date().getTime();
