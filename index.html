@@ -942,8 +942,8 @@
 
                 // 3. Cek Jawaban Server
                 if (result.allowed === true) {
-                    alert("✅ Login Sukses! Mode Admin Aktif.");
-                    enableAdminUI(); // Panggil fungsi pembuka kunci
+                    alert("✅ Login Sukses! Mengalihkan ke halaman Admin...");
+                    window.location.href = 'admin.html'; // <--- Perintah pindah halaman
                 } else {
                     alert("❌ Password Salah!");
                 }
@@ -954,31 +954,7 @@
                 document.body.style.cursor = 'default';
             }
         }
-
-        function enableAdminUI() {
-            // Hapus overlay penutup jika ada
-            document.querySelector('.po-closed-overlay')?.remove();
-            
-            // Ubah banner atas
-            const banner = document.getElementById("countdown-banner");
-            if(banner) {
-                banner.innerHTML = "🛠️ MODE ADMIN AKTIF";
-                banner.style.background = "#d32f2f"; // Warna merah biar kelihatan beda
-            }
-            
-            // Munculkan keranjang
-            const cart = document.getElementById('floating-cart');
-            if(cart) cart.style.display = 'flex';
-            
-            // Aktifkan semua tombol beli (termasuk yang sold out/disabled)
-            document.querySelectorAll('.btn-add').forEach(btn => {
-                btn.disabled = false;
-                // Opsional: ubah tampilan tombol biar tau itu mode paksa
-                btn.style.opacity = "1"; 
-                btn.style.cursor = "pointer";
-            });
-        }
-
+        
         // Jalankan timer saat load
         window.startCountdown();
 
