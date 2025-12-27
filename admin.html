@@ -3,199 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Stok - Brew & Beats</title> <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Dashboard Admin - Brew & Beats</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* ... STYLE LAMA KAMU (TETAP SAMA) ... */
-        body { background-color: #19194d; color: white; font-family: 'Montserrat', sans-serif; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        h1 { color: #a4a4e0; text-align: center; }
-        .btn-back { display: inline-block; text-decoration: none; color: white; background: #333; padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; cursor: pointer; border: none; }
-        .btn-back:hover { background: #555; }
-        .admin-form { background: #24245e; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #a4a4e0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; background: #15153a; border: 1px solid #a4a4e0; color: white; border-radius: 5px; box-sizing: border-box; }
-        button { cursor: pointer; padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; }
-        .btn-save { background: #a4a4e0; color: #19194d; width: 100%; }
-        .menu-list { display: flex; flex-direction: column; gap: 10px; }
-        .menu-item-card { background: #24245e; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #a4a4e0; }
-        .menu-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
-        .stock-info { color: #4ade80; font-weight: bold; font-size: 0.9rem; }
-        .out-of-stock { color: #ff4d4d; }
-        .actions { display: flex; gap: 10px; }
-        .btn-edit { background: #FFC107; color: black; }
-        .btn-delete { background: #FF4D4D; color: white; }
+        body {
+            background-color: #19194d;
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            gap: 20px;
+        }
+        h1 { color: #a4a4e0; margin-bottom: 30px; }
+        
+        .btn-menu {
+            width: 80%;
+            max-width: 350px;
+            padding: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            text-transform: uppercase;
+        }
+        .btn-menu:hover { transform: scale(1.05); }
+
+        /* Warna Tombol */
+        .btn-orders { 
+            background: linear-gradient(45deg, #4ade80, #22c55e); 
+            color: #000; 
+            box-shadow: 0 5px 15px rgba(74, 222, 128, 0.4);
+        }
+        .btn-stock { 
+            background: linear-gradient(45deg, #a4a4e0, #818cf8); 
+            color: #19194d; 
+            box-shadow: 0 5px 15px rgba(164, 164, 224, 0.4);
+        }
+        .btn-logout { 
+            background: transparent; 
+            border: 2px solid #ff4d4d; 
+            color: #ff4d4d; 
+            margin-top: 30px; 
+        }
+        .btn-logout:hover { background: #ff4d4d; color: white; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <button class="btn-back" onclick="window.location.href='admin.html'">⬅ Kembali ke Dashboard</button>
-    
-    <h1>Manajemen Menu & Stok</h1>
-
-    <div class="admin-form">
-        <h3 id="form-title">Tambah Menu Baru</h3>
-        <input type="hidden" id="menu-id">
-        <div class="form-group">
-            <label>Nama Menu</label>
-            <input type="text" id="name" placeholder="Contoh: Americano">
-        </div>
-        <div class="form-group">
-            <label>Harga (Angka saja)</label>
-            <input type="number" id="price" placeholder="Contoh: 15000">
-        </div>
-        <div class="form-group">
-            <label>Stok Awal</label>
-            <input type="number" id="stock" placeholder="Contoh: 50" value="10">
-        </div>
-        <div class="form-group">
-            <label>Kategori</label>
-            <select id="category">
-                <option value="DRINKS">DRINKS</option>
-                <option value="TREATS">TREATS</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Deskripsi (Opsional)</label>
-            <input type="text" id="desc" placeholder="Contoh: Best Seller">
-        </div>
-        <div class="form-group">
-            <label>Bisa Kustom? (Add-ons)</label>
-            <select id="supportsAddons">
-                <option value="true">Ya (Untuk Minuman)</option>
-                <option value="false">Tidak (Untuk Makanan)</option>
-            </select>
-        </div>
-        <button class="btn-save" onclick="saveMenu()">SIMPAN MENU</button>
-        <button onclick="resetForm()" style="background: transparent; color: #aaa; width: 100%; margin-top: 10px;">Batal / Reset</button>
-    </div>
-
-    <h3>Daftar Menu & Stok</h3>
-    <div id="menu-list" class="menu-list">
-        <p>Memuat data...</p>
-    </div>
-</div>
-
-<script type="module">
-    // --- 0. SATPAM (SECURITY CHECK) ---
-    // Tambahkan ini biar orang gak bisa langsung nembak link stock.html tanpa login
-    if (sessionStorage.getItem('isAdmin') !== 'true') {
-        alert("⚠️ Akses Ditolak! Login dulu.");
-        window.location.href = 'index.html';
-    }
-
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, remove, onValue, update } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    // --- PASTE CONFIG FIREBASE KAMU DISINI (YANG LAMA TETAP DIPAKAI) ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
-        authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
-        databaseURL: "https://brew-and-beats-5fbf2-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "brew-and-beats-5fbf2",
-        storageBucket: "brew-and-beats-5fbf2.firebasestorage.app",
-        messagingSenderId: "243138026852",
-        appId: "1:243138026852:web:73d5e7cdb446949033ee71",
-        measurementId: "G-S3ZX1F1FTP"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // --- LOGIKA APLIKASI (MASIH SAMA PERSIS KODEMU) ---
-    const menuListEl = document.getElementById('menu-list');
-    const menuRef = ref(db, 'menu');
-
-    onValue(menuRef, (snapshot) => {
-        menuListEl.innerHTML = "";
-        const data = snapshot.val();
-        
-        if (!data) {
-            menuListEl.innerHTML = "<p>Belum ada menu.</p>";
-            return;
+    <script>
+        // --- SATPAM (SECURITY CHECK) ---
+        // Kalau belum login di index.html, tendang keluar
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            alert("⚠️ Eits! Login dulu dari halaman utama.");
+            window.location.href = 'index.html';
         }
 
-        Object.keys(data).forEach(key => {
-            const item = data[key];
-            const isOutOfStock = item.stock <= 0;
-            const stockClass = isOutOfStock ? 'out-of-stock' : 'stock-info';
-            const stockText = isOutOfStock ? 'STOK HABIS' : `Sisa Stok: ${item.stock}`;
-            const cardStyle = isOutOfStock ? 'opacity: 0.6; border-color: #555;' : '';
-
-            const div = document.createElement('div');
-            div.className = `menu-item-card`;
-            div.style = cardStyle;
-            div.innerHTML = `
-                <div class="menu-info">
-                    <h3>${item.name} (${item.category})</h3>
-                    <div>Rp ${item.price}</div>
-                    <div class="${stockClass}">${stockText}</div>
-                </div>
-                <div class="actions">
-                    <button class="btn-edit" onclick="editItem('${key}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteItem('${key}')">Hapus</button>
-                </div>
-            `;
-            menuListEl.appendChild(div);
-        });
-    });
-
-    window.saveMenu = function() {
-        const id = document.getElementById('menu-id').value;
-        const name = document.getElementById('name').value;
-        const price = parseInt(document.getElementById('price').value);
-        const stock = parseInt(document.getElementById('stock').value); 
-        const category = document.getElementById('category').value;
-        const desc = document.getElementById('desc').value;
-        const supportsAddons = document.getElementById('supportsAddons').value === "true";
-
-        if(!name || !price || isNaN(stock)) return alert("Nama, Harga, dan Stok wajib diisi!");
-
-        const itemData = { name, price, stock, category, desc, supportsAddons };
-        
-        if(id) {
-            update(ref(db, 'menu/' + id), itemData)
-                .then(() => { alert("Menu diupdate!"); resetForm(); })
-                .catch(e => alert(e.message));
-        } else {
-            push(menuRef, itemData)
-                .then(() => { alert("Menu ditambah!"); resetForm(); })
-                .catch(e => alert(e.message));
+        function logout() {
+            sessionStorage.removeItem('isAdmin');
+            window.location.href = 'index.html';
         }
-    }
+    </script>
 
-    window.deleteItem = function(key) {
-        if(confirm("Yakin hapus menu ini?")) {
-            remove(ref(db, 'menu/' + key));
-        }
-    }
+    <h1>ADMIN DASHBOARD 👮‍♂️</h1>
 
-    window.editItem = function(key) {
-        onValue(ref(db, 'menu/' + key), (snapshot) => {
-            const data = snapshot.val();
-            document.getElementById('menu-id').value = key;
-            document.getElementById('name').value = data.name;
-            document.getElementById('price').value = data.price;
-            document.getElementById('stock').value = data.stock;
-            document.getElementById('category').value = data.category;
-            document.getElementById('desc').value = data.desc || "";
-            document.getElementById('supportsAddons').value = data.supportsAddons ? "true" : "false";
-            
-            document.getElementById('form-title').innerText = "Edit Menu: " + data.name;
-            window.scrollTo(0,0);
-        }, { onlyOnce: true });
-    }
+    <button class="btn-menu btn-orders" onclick="window.location.href='orders.html'">
+        📄 Cek Data Pesanan
+    </button>
 
-    window.resetForm = function() {
-        document.getElementById('menu-id').value = "";
-        document.getElementById('name').value = "";
-        document.getElementById('price').value = "";
-        document.getElementById('stock').value = "10";
-        document.getElementById('desc').value = "";
-        document.getElementById('form-title').innerText = "Tambah Menu Baru";
-    }
-</script>
+    <button class="btn-menu btn-stock" onclick="window.location.href='stock.html'">
+        📦 Atur Menu & Stok
+    </button>
+
+    <button class="btn-menu btn-logout" onclick="logout()">
+        ⬅ LOGOUT
+    </button>
+
 </body>
 </html>
