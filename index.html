@@ -521,6 +521,7 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
         </svg>
     </div>
+    <div id="overlay-container"></div>
     <script type="module">
         import { getDatabase, ref, onValue, push, set, runTransaction, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         // --- 1. IMPORT FIREBASE (JANGAN DIUBAH) ---
@@ -975,7 +976,12 @@
 
         // --- 6. LOGIKA COUNTDOWN (Timer) ---
         window.startCountdown = function() {
+            // Ganti tanggal ini sesuai keinginan
             const countdownDate = new Date("November 19, 2025 23:59:59").getTime();
+            
+            // Definisikan 'overlay' (Ambil elemen yang baru kita buat tadi)
+            const overlay = document.getElementById("overlay-container"); 
+
             const timerInterval = setInterval(function() {
                 const now = new Date().getTime();
                 const distance = countdownDate - now;
@@ -985,17 +991,40 @@
                 const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-                document.getElementById("days").innerText = days;
-                document.getElementById("hours").innerText = hours;
-                document.getElementById("minutes").innerText = minutes;
-                document.getElementById("seconds").innerText = seconds;
+                // Update angka di banner atas
+                const daysEl = document.getElementById("days");
+                if(daysEl) {
+                    daysEl.innerText = days;
+                    document.getElementById("hours").innerText = hours;
+                    document.getElementById("minutes").innerText = minutes;
+                    document.getElementById("seconds").innerText = seconds;
+                }
 
+                // Jika Waktu Habis
                 if (distance < 0) {
-                    overlay.innerHTML = `
-                        <div class="overlay-content">
-                            <h2>Pre-Order Ditutup</h2> <p>Sampai jumpa di PO berikutnya.</p>
-                            <a href="leaderboard.html">Lihat Klasemen</a>
-                        </div>`;
+                    clearInterval(timerInterval);
+                    
+                    // Pastikan elemen overlay ada sebelum diisi
+                    if (overlay) {
+                        // Tambahkan class CSS biar styling-nya jalan
+                        overlay.className = "po-closed-overlay"; 
+                        
+                        // Isi konten pesan penutup
+                        overlay.innerHTML = `
+                            <div class="overlay-content">
+                                <h2>Pre-Order Ditutup</h2> 
+                                <p>Sampai jumpa di PO berikutnya.</p>
+                                <a href="leaderboard.html">Lihat Klasemen</a>
+                            </div>`;
+                    }
+                    
+                    // Update banner atas jadi 00:00:00
+                    if(daysEl) {
+                        document.getElementById("days").innerText = "0";
+                        document.getElementById("hours").innerText = "0";
+                        document.getElementById("minutes").innerText = "0";
+                        document.getElementById("seconds").innerText = "0";
+                    }
                 }
             }, 1000);
         }
