@@ -578,12 +578,15 @@
                     const item = data[key];
                     // Format item agar sesuai dengan kode lama
                     const formattedItem = {
-                        id: key, // ID sekarang berupa string acak dari Firebase
+                        id: key, 
                         name: item.name,
                         price: item.price,
                         desc: item.desc,
                         supportsAddons: item.supportsAddons,
-                        isSoldOut: item.isSoldOut
+                        // Ambil stok, kalau tidak ada anggap 0
+                        stock: item.stock !== undefined ? item.stock : 0, 
+                        // Item dianggap sold out jika dicentang manual ATAU stoknya 0/kurang
+                        isSoldOut: item.isSoldOut || (item.stock !== undefined && item.stock <= 0)
                     };
 
                     // Masukkan ke kategori yang pas
@@ -622,16 +625,29 @@
                     let btnStyle = "";
                     let nameLabel = item.name;
                     
-                    // Perhatikan tanda kutip di dalam onclick ('${item.id}')
-                    let action = item.supportsAddons ? `openCustomModal('${item.id}')` : `directAddToCart('${item.id}')`;
+                    // --- LOGIKA STOK DI SINI ---
+                    let stockDisplay = "";
+                    
+                    // Jika stok ada (lebih dari 0), tampilkan sisa
+                    if (!item.isSoldOut && item.stock > 0) {
+                        stockDisplay = `<div style="font-size: 0.75rem; color: #a4a4e0; margin-top: 4px;">⚡ Sisa Stok: <strong>${item.stock}</strong></div>`;
+                    }
 
+                    // Cek logic Sold Out (berdasarkan manual flag atau stok 0)
+                    // Note: di langkah 1 kita sudah set isSoldOut jadi true kalau stok <= 0
                     if (item.isSoldOut) {
                         itemClass += " sold-out";
                         btnState = "disabled";
                         btnText = "X";
                         btnStyle = "background-color: #555; cursor: not-allowed;"; 
                         nameLabel += ` <span style="color:#ff4d4d; font-size:0.8em; font-weight:bold;">(HABIS)</span>`;
-                        action = ""; 
+                        stockDisplay = `<div style="font-size: 0.75rem; color: #ff4d4d; margin-top: 4px;">Stok Habis</div>`;
+                    }
+                    
+                    // Tentukan action (jika sold out, action kosong)
+                    let action = "";
+                    if (!item.isSoldOut) {
+                         action = item.supportsAddons ? `openCustomModal('${item.id}')` : `directAddToCart('${item.id}')`;
                     }
 
                     gridEl.innerHTML += `
@@ -639,6 +655,7 @@
                             <div class="item-info">
                                 <div class="item-name">${nameLabel}</div>
                                 ${item.desc ? `<div class="item-desc">${item.desc}</div>` : ''}
+                                ${stockDisplay}
                             </div>
                             <div class="item-action">
                                 <div class="item-price">${displayPrice}</div>
