@@ -3,80 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Brew & Beats</title>
+    <title>Data Pesanan - Brew & Beats</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { background-color: #19194d; color: white; font-family: 'Montserrat', sans-serif; padding: 20px; }
         h1 { text-align: center; color: #a4a4e0; margin-bottom: 20px; }
         
-        /* --- STYLE BARU: CONTROLS (Filter & Search) --- */
-        .controls-container {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
+        /* Tombol Kembali */
+        .btn-back { 
+            display: inline-block; text-decoration: none; color: white; background: #333; 
+            padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; border: none; cursor: pointer;
         }
+        .btn-back:hover { background: #555; }
 
-        .filter-select, .search-box {
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #a4a4e0;
-            background: #24245e;
-            color: white;
-            font-family: inherit;
-            outline: none;
-        }
-
+        /* Controls */
+        .controls-container { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; justify-content: center; }
+        .filter-select, .search-box { padding: 12px; border-radius: 8px; border: 1px solid #a4a4e0; background: #24245e; color: white; font-family: inherit; outline: none; }
         .filter-select { cursor: pointer; min-width: 150px; }
         .search-box { flex-grow: 1; max-width: 400px; }
-        .search-box::placeholder { color: #aaa; }
 
-        /* --- STYLE CARD SUMMARY --- */
-        .summary-box {
-            display: flex; gap: 20px; justify-content: center; margin-bottom: 20px;
-        }
+        /* Summary Cards */
+        .summary-box { display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; }
         .card { background: #24245e; padding: 15px 25px; border-radius: 10px; border: 1px solid #a4a4e0; text-align: center; min-width: 150px; }
         .card h3 { margin: 0; font-size: 1.8rem; color: #a4a4e0; }
         .card p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
 
-        /* --- TABLE --- */
+        /* TABLE STYLE */
         .table-container { overflow-x: auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        table { width: 100%; border-collapse: collapse; background: #24245e; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #444480; }
-        th { background-color: #a4a4e0; color: #19194d; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; }
-        tr:hover { background-color: #2f2f7a; }
+        table { width: 100%; border-collapse: collapse; background: #24245e; }
         
-        /* Highlight hasil search */
-        .highlight { background-color: rgba(255, 255, 0, 0.3); color: #fff; padding: 2px 4px; border-radius: 3px; }
+        th { background-color: #a4a4e0; color: #19194d; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; padding: 15px; text-align: left; }
+        td { padding: 15px; text-align: left; border-bottom: 1px solid #444480; vertical-align: top; } 
+        tr:hover { background-color: #2f2f7a; }
 
-        .btn-action {
-            background: #ff4d4d; color: white; border: none; padding: 8px 12px; 
-            border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        /* List Styling */
+        .item-list div { margin-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 4px; }
+        .item-list div:last-child { border-bottom: none; }
+        .addon-list div { margin-bottom: 8px; color: #FFC107; font-size: 0.9rem; padding-bottom: 4px; height: 21px; }
+
+        /* --- STYLE BARU: TOMBOL STATUS --- */
+        .status-container {
+            display: flex; gap: 10px; align-items: center;
         }
-        .btn-action:hover { background: #ff0000; transform: scale(1.05); }
+
+        .btn-status {
+            padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; 
+            border: none; width: 100px; transition: 0.3s;
+            font-size: 0.85rem;
+        }
+
+        /* Status Belum (Abu-abu) */
+        .status-pending {
+            background-color: #666; color: #ccc;
+        }
+        .status-pending:hover { background-color: #777; }
+
+        /* Status Selesai (Hijau) */
+        .status-done {
+            background-color: #4ade80; color: #000;
+        }
+        
+        /* Tombol Hapus Kecil */
+        .btn-trash {
+            background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.5;
+        }
+        .btn-trash:hover { opacity: 1; transform: scale(1.1); }
+
     </style>
 </head>
 <body>
 
-    <h1>ADMIN DASHBOARD 👮‍♂️</h1>
+    <button class="btn-back" onclick="window.location.href='admin.html'">⬅ Kembali ke Dashboard</button>
+
+    <h1>DATA PESANAN MASUK</h1>
 
     <div class="summary-box">
         <div class="card">
             <h3 id="total-orders">0</h3>
-            <p>Jml Pesanan Tampil</p>
+            <p>Jml Pesanan</p>
         </div>
         <div class="card">
             <h3 id="total-income">Rp 0</h3>
-            <p>Total Pemasukan Tampil</p>
+            <p>Total Pemasukan</p>
         </div>
     </div>
 
     <div class="controls-container">
         <select id="filter-class" class="filter-select" onchange="applyFilter()">
             <option value="ALL">📂 Semua Kelas</option>
-            </select>
-
+        </select>
         <input type="text" id="search-input" class="search-box" placeholder="🔍 Cari Nama, Menu, atau No HP..." onkeyup="applyFilter()">
     </div>
 
@@ -85,13 +100,12 @@
             <thead>
                 <tr>
                     <th>Waktu</th>
-                    <th>Nama</th>
-                    <th>Kelas</th>
+                    <th>Nama & Kelas</th>
                     <th>No. HP</th>
-                    <th>Item Pesanan</th>
+                    <th width="30%">Item Pesanan</th>
+                    <th width="20%">Add-ons</th>
                     <th>Total</th>
-                    <th>Aksi</th>
-                </tr>
+                    <th>Verifikasi</th> </tr>
             </thead>
             <tbody id="order-table-body">
                 <tr><td colspan="7" style="text-align:center;">Memuat data...</td></tr>
@@ -100,8 +114,15 @@
     </div>
 
     <script type="module">
+        // --- 0. CEK LOGIN ---
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            alert("⚠️ Akses Ditolak! Login dulu.");
+            window.location.href = 'index.html';
+        }
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        // Tambahkan 'update' di sini
+        import { getDatabase, ref, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
@@ -117,71 +138,48 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // VARIABEL GLOBAL UNTUK MENYIMPAN DATA MENTAH
         window.allOrdersData = []; 
-
         const ordersRef = ref(db, 'orders');
         const tableBody = document.getElementById('order-table-body');
         const totalOrdersEl = document.getElementById('total-orders');
         const totalIncomeEl = document.getElementById('total-income');
         const classFilterEl = document.getElementById('filter-class');
 
-        // --- 1. AMBIL DATA DARI FIREBASE ---
+        // --- 1. AMBIL DATA ---
         onValue(ordersRef, (snapshot) => {
             const data = snapshot.val();
-            window.allOrdersData = []; // Reset data lokal
+            window.allOrdersData = []; 
 
             if (data) {
-                // Konversi Object ke Array & Sort Paling Lama -> Paling Baru
                 window.allOrdersData = Object.entries(data).map(([key, value]) => {
                     return { id: key, ...value };
                 }).sort((a, b) => a.timestamp - b.timestamp);
             }
 
-            // Update Dropdown Kelas (Supaya otomatis nambah kalau ada kelas baru yg pesen)
             populateClassDropdown();
-
-            // Render Tabel Pertama Kali
             applyFilter();
         });
 
-        // --- 2. POPULATE DROPDOWN KELAS OTOMATIS ---
+        // --- 2. DROPDOWN KELAS ---
         function populateClassDropdown() {
-            // Ambil semua kelas unik yang ada di data pesanan
             const uniqueClasses = [...new Set(window.allOrdersData.map(item => item.class || "Lainnya"))].sort();
-            
-            // Simpan pilihan yang sedang dipilih user (biar gak kereset pas ada data baru masuk)
             const currentSelection = classFilterEl.value;
-
-            // Reset isi dropdown, sisakan "Semua Kelas"
             classFilterEl.innerHTML = '<option value="ALL">📂 Semua Kelas</option>';
-
             uniqueClasses.forEach(cls => {
-                if(cls) {
-                    classFilterEl.innerHTML += `<option value="${cls}">${cls}</option>`;
-                }
+                if(cls) classFilterEl.innerHTML += `<option value="${cls}">${cls}</option>`;
             });
-
-            // Balikin pilihan user
-            if (uniqueClasses.includes(currentSelection)) {
-                classFilterEl.value = currentSelection;
-            }
+            if (uniqueClasses.includes(currentSelection)) classFilterEl.value = currentSelection;
         }
 
-        // --- 3. FUNGSI FILTER & SEARCH (LOGIKA UTAMA) ---
-        // Kita tempel di window supaya bisa dipanggil HTML
+        // --- 3. FILTER LOGIC ---
         window.applyFilter = function() {
             const filterValue = document.getElementById('filter-class').value;
             const searchValue = document.getElementById('search-input').value.toLowerCase();
 
             let filteredData = window.allOrdersData.filter(order => {
-                // 1. Cek Filter Kelas
                 const classMatch = (filterValue === "ALL") || (order.class === filterValue);
-                
-                // 2. Cek Search (Nama, Item, atau No HP)
                 const searchString = (order.customer + " " + order.items + " " + order.phone).toLowerCase();
                 const searchMatch = searchString.includes(searchValue);
-
                 return classMatch && searchMatch;
             });
 
@@ -195,7 +193,7 @@
             let income = 0;
 
             if (dataArray.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; opacity: 0.7;">Tidak ada data yang cocok.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; opacity: 0.7;">Tidak ada data.</td></tr>';
                 totalOrdersEl.innerText = '0';
                 totalIncomeEl.innerText = 'Rp 0';
                 return;
@@ -207,39 +205,91 @@
                 income += cleanPrice;
 
                 let dateObj = new Date(order.timestamp);
-                let timeStr = dateObj.toLocaleDateString('id-ID') + ' ' + dateObj.toLocaleTimeString('id-ID');
+                let timeStr = dateObj.toLocaleDateString('id-ID') + '<br><small>' + dateObj.toLocaleTimeString('id-ID') + '</small>';
+
+                // Parsing Item & Addons
+                let itemsHtml = '';
+                let addonsHtml = '';
+
+                if (order.orderDetails) {
+                    try {
+                        const cart = JSON.parse(order.orderDetails);
+                        cart.forEach(item => {
+                            itemsHtml += `<div>• ${item.name} <b>(${item.qty}x)</b></div>`;
+                            if (item.addOns && item.addOns.length > 0) {
+                                const names = item.addOns.map(a => a.name).join(', ');
+                                addonsHtml += `<div>+ ${names}</div>`;
+                            } else {
+                                addonsHtml += `<div>-</div>`;
+                            }
+                        });
+                    } catch (e) {
+                        itemsHtml = order.items;
+                        addonsHtml = '-';
+                    }
+                } else {
+                    itemsHtml = order.items.split(', ').join('<br>• ');
+                    if(itemsHtml) itemsHtml = '• ' + itemsHtml;
+                    addonsHtml = '<span style="opacity:0.5">-</span>';
+                }
+
+                // --- LOGIKA TOMBOL STATUS ---
+                // Cek apakah status di database sudah "true" (Done) atau belum
+                const isDone = order.isDone === true; 
+                
+                // Tentukan Warna & Teks
+                const btnClass = isDone ? 'status-done' : 'status-pending';
+                const btnText = isDone ? 'DONE ✅' : 'NOT DONE';
+                
+                // Tentukan status kebalikannya untuk fungsi toggle (kalau diklik)
+                const nextStatus = !isDone; 
 
                 let row = `
                     <tr>
-                        <td><small>${timeStr}</small></td>
-                        <td><strong>${order.customer}</strong></td>
-                        <td><span class="highlight-class">${order.class || '-'}</span></td>
+                        <td>${timeStr}</td>
+                        <td>
+                            <strong>${order.customer}</strong><br>
+                            <span style="color:#a4a4e0; font-size:0.85rem;">${order.class || '-'}</span>
+                        </td>
                         <td>
                             <a href="https://wa.me/${order.phone}" target="_blank" style="color:#4ade80; text-decoration:none;">
                                 ${order.phone} ↗
                             </a>
                         </td>
-                        <td>${order.items}</td>
+                        <td class="item-list">${itemsHtml}</td>
+                        <td class="addon-list">${addonsHtml}</td>
                         <td style="font-weight:bold; color:#a4a4e0;">${order.total}</td>
+                        
                         <td>
-                            <button class="btn-action" onclick="deleteOrder('${order.id}')">Selesai</button>
+                            <div class="status-container">
+                                <button class="btn-status ${btnClass}" onclick="toggleStatus('${order.id}', ${nextStatus})">
+                                    ${btnText}
+                                </button>
+                                <button class="btn-trash" onclick="deleteOrder('${order.id}')" title="Hapus Permanen">🗑️</button>
+                            </div>
                         </td>
                     </tr>
                 `;
                 tableBody.innerHTML += row;
             });
 
-            // Update Kartu Statistik sesuai Filter
             totalOrdersEl.innerText = count;
             totalIncomeEl.innerText = 'Rp ' + income.toLocaleString('id-ID');
         }
 
-        // --- 5. HAPUS ORDER ---
+        // --- 5. FUNGSI TOGGLE STATUS (HIJAU/ABU) ---
+        window.toggleStatus = function(orderId, newStatus) {
+            // Update status 'isDone' di Firebase
+            // Tidak menghapus data, cuma ganti status
+            update(ref(db, 'orders/' + orderId), {
+                isDone: newStatus
+            });
+        }
+
+        // --- 6. FUNGSI HAPUS (DELETE PERMANEN) ---
         window.deleteOrder = function(orderId) {
-            if (confirm('Yakin pesanan ini sudah selesai/diambil? Data akan dihapus permanen.')) {
-                remove(ref(db, 'orders/' + orderId))
-                    .then(() => alert('Data berhasil dihapus.'))
-                    .catch((err) => alert('Gagal menghapus: ' + err));
+            if (confirm('Yakin ingin MENGHAPUS data ini secara permanen?')) {
+                remove(ref(db, 'orders/' + orderId));
             }
         }
     </script>
