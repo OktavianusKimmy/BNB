@@ -399,14 +399,160 @@
             background-color: rgba(0, 0, 0, 0.9);
             transform: rotate(90deg); /* Efek putar saat hover */
         }
+
+        /* --- STYLE BANNER COUNTDOWN (REFERENSI GAMBAR) --- */
+        #po-banner {
+            background-color: #c084fc; /* Warna Ungu Muda (Lavender) */
+            color: #19194d; /* Warna Teks Navy Gelap */
+            width: 100%;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 10px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        #po-banner.hidden {
+            display: none !important;
+        }
+
+        .banner-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap; /* Agar rapi di HP */
+        }
+
+        .banner-label {
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #countdown-timer {
+            display: flex;
+            gap: 8px;
+        }
+
+        .timer-box {
+            background-color: rgba(255, 255, 255, 0.4); /* Kotak Transparan Putih */
+            border-radius: 8px;
+            padding: 5px 10px;
+            min-width: 55px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .timer-box span {
+            font-size: 1.2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .timer-box small {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* --- STYLE SAAT PO DITUTUP (Overlay & Glowing Text) --- */
+        .po-closed-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            /* Background Gelap dengan sedikit transparansi */
+            background: rgba(25, 25, 77, 0.95); 
+            backdrop-filter: blur(8px); /* Efek Blur di belakang */
+            z-index: 2000; /* Pastikan di atas segalanya */
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            animation: fadeIn 0.8s ease;
+            padding: 20px;
+        }
+
+        /* Judul "Pre-Order Telah Ditutup" */
+        .closed-title {
+            font-family: 'Limelight', cursive; /* Pastikan font Limelight sudah di-load di <head> */
+            font-size: 3rem; /* Ukuran besar */
+            color: #fff;
+            margin-bottom: 10px;
+            
+            /* EFEK GLOWING (Cahaya Ungu) */
+            text-shadow: 
+                0 0 10px #a4a4e0,
+                0 0 20px #a4a4e0,
+                0 0 40px #818cf8;
+        }
+
+        /* Sub-judul */
+        .closed-subtitle {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1rem;
+            color: #e0e0e0;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+
+        /* Tombol Klasemen */
+        .btn-closed {
+            background-color: #a4a4e0;
+            color: #19194d;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 12px 30px;
+            border-radius: 50px; /* Bulat lonjong */
+            text-decoration: none;
+            box-shadow: 0 5px 15px rgba(164, 164, 224, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-closed:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(164, 164, 224, 0.6);
+            background-color: #fff;
+        }
+
+        /* Responsive di HP */
+        @media (max-width: 600px) {
+            .closed-title { font-size: 2rem; }
+        }
     </style>
 </head>
 <body>
-    <div id="po-banner" class="hidden bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
-    <p class="text-yellow-700">
-        Pre-Order ditutup pada: <span id="display-po-date" class="font-bold">--/--/----</span>
-    </p>
-</div>
+    <div id="po-banner" class="hidden">
+        <div class="banner-content">
+            <span class="banner-label">Pre-Order Ditutup Dalam:</span>
+            <div id="countdown-timer">
+                <div class="timer-box">
+                    <span id="days">0</span>
+                    <small>Hari</small>
+                </div>
+                <div class="timer-box">
+                    <span id="hours">0</span>
+                    <small>Jam</small>
+                </div>
+                <div class="timer-box">
+                    <span id="minutes">0</span>
+                    <small>Menit</small>
+                </div>
+                <div class="timer-box">
+                    <span id="seconds">0</span>
+                    <small>Detik</small>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="container">
         <header onclick="window.location.href='leaderboard.html'">
             <h1>Brew & Beats</h1>
@@ -562,55 +708,79 @@
         function updatePODisplay(config) {
             const bannerEl = document.getElementById('po-banner');
             const overlayContainer = document.getElementById('overlay-container');
-            const displayDateEl = document.getElementById('display-po-date');
             
-            // Bersihkan timer lama jika ada update data
+            // Bersihkan timer lama
             if (countdownInterval) clearInterval(countdownInterval);
 
-            // SKENARIO A: Banner Dimatikan Admin (Pre-Order dianggap TIDAK ADA / Selalu Buka)
+            // SKENARIO A: Banner Dimatikan Admin
             if (!config.isActive) {
-                bannerEl.classList.add('hidden'); // Sembunyikan banner kuning
-                overlayContainer.innerHTML = '';      // Hapus layar penutup (overlay)
-                overlayContainer.className = '';      // Hapus class overlay
-                return; // Selesai, user bebas pesan
+                bannerEl.classList.add('hidden');
+                overlayContainer.innerHTML = '';
+                overlayContainer.className = '';
+                return;
             }
 
-            // SKENARIO B: Banner Hidup (Cek Tanggal)
-            bannerEl.classList.remove('hidden'); // Munculkan banner kuning
+            // SKENARIO B: Banner Hidup (Hitung Mundur)
+            bannerEl.classList.remove('hidden'); 
             
-            // Tampilkan tanggal di banner
-            const targetDate = new Date(config.closeDate); // Pastikan format di DB: "YYYY-MM-DD HH:MM" atau sejenisnya
-            // Jika admin cuma simpan tanggal (YYYY-MM-DD), kita set jamnya ke akhir hari (23:59:59)
+            const targetDate = new Date(config.closeDate);
+            // Set ke akhir hari (23:59:59)
             targetDate.setHours(23, 59, 59);
 
-            displayDateEl.innerText = targetDate.toLocaleDateString('id-ID', { 
-                day: 'numeric', month: 'long', year: 'numeric' 
-            });
-
-            // Jalankan Hitung Mundur
-            countdownInterval = setInterval(() => {
+            // Fungsi update angka
+            const updateTimerUI = () => {
                 const now = new Date().getTime();
                 const distance = targetDate.getTime() - now;
 
-                // Jika Waktu Habis -> TAMPILKAN OVERLAY BLOKIR
                 if (distance < 0) {
+                    // --- WAKTU HABIS (CLOSE PO) ---
                     clearInterval(countdownInterval);
+                    
+                    // 1. Ubah Tampilan Banner Atas (Opsional, biar sinkron)
+                    const bannerContent = bannerEl.querySelector('.banner-content');
+                    if(bannerContent) {
+                        bannerContent.innerHTML = '<span style="font-weight:800; letter-spacing:1px;">PRE-ORDER SUDAH DITUTUP</span>';
+                        bannerEl.style.backgroundColor = "#a4a4e0"; // Ganti warna banner jadi ungu solid
+                    }
+
+                    // 2. TAMPILKAN OVERLAY "GLOWING" BARU
                     overlayContainer.className = "po-closed-overlay";
                     overlayContainer.innerHTML = `
                         <div class="overlay-content">
-                            <h2>Pre-Order Ditutup</h2> 
-                            <p>Sampai jumpa di PO berikutnya.</p>
-                            <a href="leaderboard.html">Lihat Klasemen</a>
+                            <div class="closed-title">Pre-Order Telah Ditutup</div>
+                            
+                            <p class="closed-subtitle">
+                                Terima kasih atas partisipasinya! Sampai jumpa di PO berikutnya.
+                            </p>
+                            
+                            <a href="leaderboard.html" class="btn-closed">
+                                Lihat Klasemen Akhir
+                            </a>
                         </div>`;
                 } else {
-                    // Jika Masih Ada Waktu -> Pastikan Overlay Kosong
+                    // WAKTU MASIH ADA -> Hitung Rumus
+                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                    // Masukkan ke dalam kotak HTML
+                    document.getElementById("days").innerText = days;
+                    document.getElementById("hours").innerText = hours;
+                    document.getElementById("minutes").innerText = minutes;
+                    document.getElementById("seconds").innerText = seconds;
+                    
+                    // Pastikan overlay hilang
                     overlayContainer.innerHTML = '';
                     overlayContainer.className = '';
-                    
-                    // Opsional: Jika Anda ingin menampilkan timer jam/menit di banner kuning
-                    // Anda bisa menambahkan elemen span id="hours", dll di dalam HTML banner kuning tadi
                 }
-            }, 1000);
+            };
+
+            // Jalankan sekali di awal biar gak nunggu 1 detik
+            updateTimerUI();
+            
+            // Jalankan interval per detik
+            countdownInterval = setInterval(updateTimerUI, 1000);
         }
 
         // --- 3. VARIABEL GLOBAL ---
