@@ -522,7 +522,7 @@
         </svg>
     </div>
     <script type="module">
-        import { getDatabase, ref, onValue, push, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, onValue, push, set, runTransaction, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         // --- 1. IMPORT FIREBASE (JANGAN DIUBAH) ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 
@@ -823,21 +823,52 @@
             if (name.length <= 3) return alert("Nama kependekan.");
             if (!/^\d+$/.test(phone) || phone.length < 10) return alert("Nomor HP tidak valid.");
 
-            let baseTotal = window.cart.reduce((sum, item) => sum + (item.finalPrice * item.qty), 0);
-            window.lastUniqueCode = Math.floor(Math.random() * (99 - 10 + 1)) + 10;
-            let finalTransferAmount = baseTotal + window.lastUniqueCode;
-
-            document.getElementById('payment-total').innerText = 'Rp ' + finalTransferAmount.toLocaleString('id-ID');
-            document.getElementById('qris-area').innerHTML = '<p style="opacity: 0.7;">⏳ Sedang membuat QRIS...</p>';
-            window.toggleModal('cart-modal');
-            setTimeout(() => window.toggleModal('payment-modal'), 300);
+            // --- PERUBAHAN 1: CEK STOK DULU SEBELUM MUNCUL QRIS ---
+            const btnLanjut = document.querySelector('.btn-whatsapp');
+            const txtAsli = btnLanjut.innerText;
+            btnLanjut.innerText = "⏳ Mengecek Stok...";
+            btnLanjut.disabled = true;
 
             try {
+                // Kita cek stok semua item di keranjang satu per satu
+                const stockChecks = window.cart.map(async (item) => {
+                    const snapshot = await get(ref(db, 'menu/' + item.productId + '/stock'));
+                    const currentStock = snapshot.val() || 0;
+                    return { 
+                        name: item.name, 
+                        cukup: currentStock >= item.qty,
+                        sisa: currentStock 
+                    };
+                });
+
+                const results = await Promise.all(stockChecks);
+                const itemHabis = results.find(r => !r.cukup);
+
+                if (itemHabis) {
+                    alert(`❌ Maaf, stok untuk "${itemHabis.name}" barusan berubah. Sisa: ${itemHabis.sisa}. Mohon kurangi jumlah pesanan.`);
+                    btnLanjut.innerText = txtAsli;
+                    btnLanjut.disabled = false;
+                    return; // STOP! JANGAN LANJUT KE PEMBAYARAN
+                }
+
+                // --- KALAU STOK AMAN, LANJUT GENERATE QRIS ---
+                let baseTotal = window.cart.reduce((sum, item) => sum + (item.finalPrice * item.qty), 0);
+                window.lastUniqueCode = Math.floor(Math.random() * (99 - 10 + 1)) + 10;
+                let finalTransferAmount = baseTotal + window.lastUniqueCode;
+
+                document.getElementById('payment-total').innerText = 'Rp ' + finalTransferAmount.toLocaleString('id-ID');
+                document.getElementById('qris-area').innerHTML = '<p style="opacity: 0.7;">⏳ Sedang membuat QRIS...</p>';
+                
+                window.toggleModal('cart-modal');
+                setTimeout(() => window.toggleModal('payment-modal'), 300);
+
+                // API Call Generate QRIS
                 const response = await fetch('/api/generate-qris', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ amount: finalTransferAmount })
                 });
+                
                 if (!response.ok) throw new Error("Gagal generate QRIS");
                 const data = await response.json();
 
@@ -849,10 +880,13 @@
                         correctLevel : QRCode.CorrectLevel.L
                     });
                 } else { throw new Error("QR String kosong"); }
+
             } catch (error) {
                 console.error(error);
-                alert("Gagal memuat QRIS. Silakan coba lagi.");
-                window.toggleModal('payment-modal');
+                alert("Gagal memuat pembayaran. Coba lagi.");
+            } finally {
+                btnLanjut.innerText = txtAsli;
+                btnLanjut.disabled = false;
             }
         }
 
@@ -860,78 +894,81 @@
         window.confirmOrderAutomatic = async function() {
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
+            const cls = document.getElementById('cust-class').value;
             
-            // Validasi sederhana
             if(!name || !phone) return alert("Isi nama dan nomor HP dulu!");
 
             const btn = document.querySelector('.btn-whatsapp-confirm');
+            const originalText = btn.innerHTML; // Simpan teks asli tombol
             btn.innerHTML = '⏳ Memproses Stok...';
             btn.disabled = true;
 
-            // --- LOGIKA POTONG STOK (TRANSACTION) ---
-            // Kita cek satu-satu item di keranjang
+            // --- LOGIKA POTONG STOK ---
             const updates = window.cart.map(item => {
                 const itemRef = ref(db, 'menu/' + item.productId + '/stock');
-                
-                // Jalankan transaksi Firebase
                 return runTransaction(itemRef, (currentStock) => {
-                    if (currentStock === null) return 0; // Data gak ada
-                    
+                    if (currentStock === null) return 0;
                     if (currentStock >= item.qty) {
-                        // Jika stok cukup, kurangi
                         return currentStock - item.qty;
                     } else {
-                        // Jika stok kurang, batalkan transaksi (return undefined)
-                        return; 
+                        return; // Batalkan transaksi jika stok kurang
                     }
                 });
             });
 
             try {
-                // Tunggu semua proses potong stok selesai
                 const results = await Promise.all(updates);
-                
-                // Cek apakah ada yang gagal (committed = false berarti stok abis/batal)
                 const failed = results.some(result => !result.committed);
 
                 if (failed) {
-                    alert("❌ Maaf! Salah satu item di keranjang stoknya sudah habis duluan dibeli orang lain.");
-                    btn.innerHTML = 'Coba Lagi';
+                    // --- SKENARIO APES: SUDAH BAYAR TAPI STOK HABIS ---
+                    alert("⚠️ WADUH! Stok item ini barusan habis diserobot orang lain.\n\nKarena kamu SUDAH BAYAR, silakan klik tombol di bawah untuk lapor Admin (Sertakan Bukti Transfer). Uang akan direfund atau ganti menu.");
+                    
+                    // Ubah tombol konfirmasi jadi tombol WhatsApp Admin
+                    btn.style.backgroundColor = "#ff4d4d"; // Warna merah darurat
+                    btn.innerHTML = "📢 LAPOR ADMIN (REFUND/GANTI)";
                     btn.disabled = false;
-                    // Tips: Sebaiknya reload halaman atau update keranjang
-                    return;
+                    
+                    // Buat pesan WhatsApp otomatis
+                    const totalBayar = document.getElementById('payment-total').innerText;
+                    const detailOrder = window.cart.map(i => `${i.name} (${i.qty}x)`).join(', ');
+                    const pesanWA = `Halo, saya *${name}* (${cls}).%0a%0aSaya sudah transfer *${totalBayar}* via QRIS.%0aTapi saat konfirmasi di web, sistem bilang *STOK HABIS*.%0a%0aDetail Pesanan:%0a${detailOrder}%0a%0aMohon dicek bukti transfer saya (saya lampirkan foto).`;
+                    
+                    // Ganti fungsi tombol biar pas diklik lari ke WA
+                    btn.onclick = function() {
+                        window.open(`https://wa.me/6287788448765?text=${pesanWA}`, '_blank'); // GANTI NO WA ADMIN DISINI
+                    };
+                    
+                    return; // Stop proses, jangan simpan order sukses
                 }
 
-                // --- KALAU SUKSES POTONG STOK, BARU PROSES ORDER ---
-                // (Di sini kamu bisa panggil API Vercel kamu atau simpan order ke Firebase 'orders')
-                
+                // --- KALAU SUKSES ---
                 let orderId = "ORD-" + Date.now().toString().slice(-6);
                 let itemsReport = window.cart.map(i => `${i.name} (${i.qty}x)`).join(', ');
 
-                // Simpan Log Order ke Firebase (Opsional, biar admin bisa liat history)
                 const ordersRef = ref(db, 'orders/' + orderId);
                 set(ordersRef, {
                     customer: name,
+                    class: cls,
                     phone: phone,
                     items: itemsReport,
                     total: document.getElementById('payment-total').innerText,
-                    status: 'pending',
+                    status: 'paid', // Langsung paid karena ini QRIS
                     timestamp: Date.now()
                 });
 
                 window.toggleModal('payment-modal');
-                alert(`✅ TERIMA KASIH!\nOrder ID: ${orderId}\nStok sudah otomatis diamankan untukmu.`);
+                alert(`✅ PESANAN BERHASIL!\nOrder ID: ${orderId}\nPesanan sudah diamankan untukmu!.`);
                 
-                // Bersihkan keranjang
                 window.cart = [];
                 window.updateCartUI();
-                window.location.reload(); // Reload biar data stok terbaru muncul
+                window.location.reload();
 
             } catch (error) {
                 console.error(error);
-                alert("Terjadi kesalahan koneksi saat memproses stok.");
+                alert("Terjadi kesalahan koneksi.");
                 btn.disabled = false;
-                btn.innerHTML = 'SAYA SUDAH TRANSFER';
+                btn.innerHTML = originalText;
             }
         }
 
