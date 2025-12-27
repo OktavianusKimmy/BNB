@@ -370,6 +370,35 @@
             background: #fff;
             transform: scale(1.05);
         }
+        /* --- STYLE TOMBOL ADMIN (BARU) --- */
+        #admin-trigger-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10001; /* Harus lebih tinggi dari overlay (999) dan banner (1000) */
+            
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            cursor: pointer;
+            opacity: 0.4; /* Samar saat tidak disentuh */
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #admin-trigger-btn:hover {
+            opacity: 1;
+            background-color: rgba(0, 0, 0, 0.9);
+            transform: rotate(90deg); /* Efek putar saat hover */
+        }
     </style>
 </head>
 <body>
@@ -485,6 +514,12 @@
                 </button>
             </div>
         </div>
+    </div>
+    <div id="admin-trigger-btn" title="Admin Login">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
     </div>
     <script type="module">
         // --- 1. IMPORT FIREBASE (JANGAN DIUBAH) ---
@@ -869,48 +904,79 @@
                 document.getElementById("seconds").innerText = seconds;
 
                 if (distance < 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById("countdown-banner").innerHTML = "PRE-ORDER SUDAH DITUTUP";
-                    if (!document.querySelector('.po-closed-overlay')) {
-                        const overlay = document.createElement('div');
-                        overlay.className = 'po-closed-overlay';
-                        overlay.innerHTML = `
-                            <div class="overlay-content">
-                                <h2 onclick="secretAdminLogin()" style="cursor: default;">Pre-Order Ditutup</h2>
-                                <p>Sampai jumpa di PO berikutnya.</p>
-                                <a href="/leaderboard.html">Lihat Klasemen</a>
-                            </div>`;
-                        document.body.appendChild(overlay);
-                    }
-                    const cartButton = document.getElementById('floating-cart');
-                    if (cartButton) cartButton.style.display = 'none';
-                    document.querySelectorAll('.btn-add').forEach(btn => btn.disabled = true);
+                    overlay.innerHTML = `
+                        <div class="overlay-content">
+                            <h2>Pre-Order Ditutup</h2> <p>Sampai jumpa di PO berikutnya.</p>
+                            <a href="leaderboard.html">Lihat Klasemen</a>
+                        </div>`;
                 }
             }, 1000);
         }
         
-        // --- 7. ADMIN SECRET LOGIN ---
-        window.secretAdminLogin = async function() {
-            window.secretClicks++;
-            console.log("Klik: " + window.secretClicks);
-            if (window.secretClicks === 2) {
-                const passwordInput = prompt("Password Admin:");
-                if (!passwordInput) { window.secretClicks = 0; return; }
-                
-                // Logika admin login sederhana (sebaiknya validasi di server juga)
-                if(passwordInput === "rahasia") { // Ganti password sesukamu
-                    alert("Mode Admin Aktif!");
-                    document.querySelector('.po-closed-overlay')?.remove();
-                    document.getElementById("countdown-banner").innerHTML = "⚠️ MODE ADMIN";
-                    document.getElementById('floating-cart').style.display = 'flex';
-                    document.querySelectorAll('.btn-add').forEach(btn => {
-                    if(!btn.innerText.includes("HABIS")) btn.disabled = false;
-                    });
+        // --- 7. ADMIN LOGIN (SECURE VIA VERCEL API) ---
+        
+        // Pasang event listener ke tombol icon saat script jalan
+        const adminBtn = document.getElementById('admin-trigger-btn');
+        if(adminBtn) {
+            adminBtn.addEventListener('click', handleAdminLogin);
+        }
+
+        async function handleAdminLogin() {
+            // 1. Minta Password
+            const passwordInput = prompt("🔒 Masukkan Password Admin:");
+            if (!passwordInput) return;
+
+            // Indikator loading kursor
+            document.body.style.cursor = 'wait';
+
+            try {
+                // 2. Tanya ke Server Vercel (API)
+                // Pastikan kamu sudah buat file /api/login.js di Vercel
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passwordInput: passwordInput })
+                });
+
+                const result = await response.json();
+
+                // 3. Cek Jawaban Server
+                if (result.allowed === true) {
+                    alert("✅ Login Sukses! Mode Admin Aktif.");
+                    enableAdminUI(); // Panggil fungsi pembuka kunci
                 } else {
-                    alert("Salah!");
+                    alert("❌ Password Salah!");
                 }
-                window.secretClicks = 0;
+            } catch (error) {
+                console.error(error);
+                alert("⚠️ Gagal menghubungi server.");
+            } finally {
+                document.body.style.cursor = 'default';
             }
+        }
+
+        function enableAdminUI() {
+            // Hapus overlay penutup jika ada
+            document.querySelector('.po-closed-overlay')?.remove();
+            
+            // Ubah banner atas
+            const banner = document.getElementById("countdown-banner");
+            if(banner) {
+                banner.innerHTML = "🛠️ MODE ADMIN AKTIF";
+                banner.style.background = "#d32f2f"; // Warna merah biar kelihatan beda
+            }
+            
+            // Munculkan keranjang
+            const cart = document.getElementById('floating-cart');
+            if(cart) cart.style.display = 'flex';
+            
+            // Aktifkan semua tombol beli (termasuk yang sold out/disabled)
+            document.querySelectorAll('.btn-add').forEach(btn => {
+                btn.disabled = false;
+                // Opsional: ubah tampilan tombol biar tau itu mode paksa
+                btn.style.opacity = "1"; 
+                btn.style.cursor = "pointer";
+            });
         }
 
         // Jalankan timer saat load
