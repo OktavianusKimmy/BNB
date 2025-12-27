@@ -3,32 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Brew & Beats</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Manajemen Stok - Brew & Beats</title> <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* ... STYLE LAMA KAMU (TETAP SAMA) ... */
         body { background-color: #19194d; color: white; font-family: 'Montserrat', sans-serif; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; }
         h1 { color: #a4a4e0; text-align: center; }
-        
-        /* Tombol Kembali */
-        .btn-back { display: inline-block; text-decoration: none; color: white; background: #333; padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; }
+        .btn-back { display: inline-block; text-decoration: none; color: white; background: #333; padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; cursor: pointer; border: none; }
         .btn-back:hover { background: #555; }
-
-        /* Form Input */
         .admin-form { background: #24245e; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #a4a4e0; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; }
         input, select { width: 100%; padding: 10px; background: #15153a; border: 1px solid #a4a4e0; color: white; border-radius: 5px; box-sizing: border-box; }
         button { cursor: pointer; padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; }
         .btn-save { background: #a4a4e0; color: #19194d; width: 100%; }
-        
-        /* List Menu */
         .menu-list { display: flex; flex-direction: column; gap: 10px; }
         .menu-item-card { background: #24245e; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #a4a4e0; }
         .menu-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
         .stock-info { color: #4ade80; font-weight: bold; font-size: 0.9rem; }
         .out-of-stock { color: #ff4d4d; }
-        
         .actions { display: flex; gap: 10px; }
         .btn-edit { background: #FFC107; color: black; }
         .btn-delete { background: #FF4D4D; color: white; }
@@ -37,8 +30,9 @@
 <body>
 
 <div class="container">
-    <button onclick="window.history.back()">⬅ Kembali</button>
-    <h1>Admin Menu Manager</h1>
+    <button class="btn-back" onclick="window.location.href='admin.html'">⬅ Kembali ke Dashboard</button>
+    
+    <h1>Manajemen Menu & Stok</h1>
 
     <div class="admin-form">
         <h3 id="form-title">Tambah Menu Baru</h3>
@@ -84,11 +78,18 @@
 </div>
 
 <script type="module">
+    // --- 0. SATPAM (SECURITY CHECK) ---
+    // Tambahkan ini biar orang gak bisa langsung nembak link stock.html tanpa login
+    if (sessionStorage.getItem('isAdmin') !== 'true') {
+        alert("⚠️ Akses Ditolak! Login dulu.");
+        window.location.href = 'index.html';
+    }
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, remove, onValue, update } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // --- PASTE CONFIG FIREBASE KAMU DISINI ---
+    // --- PASTE CONFIG FIREBASE KAMU DISINI (YANG LAMA TETAP DIPAKAI) ---
     const firebaseConfig = {
         apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
         authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
@@ -103,7 +104,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- LOGIKA APLIKASI ---
+    // --- LOGIKA APLIKASI (MASIH SAMA PERSIS KODEMU) ---
     const menuListEl = document.getElementById('menu-list');
     const menuRef = ref(db, 'menu');
 
@@ -118,7 +119,6 @@
 
         Object.keys(data).forEach(key => {
             const item = data[key];
-            // Logika Stok Habis
             const isOutOfStock = item.stock <= 0;
             const stockClass = isOutOfStock ? 'out-of-stock' : 'stock-info';
             const stockText = isOutOfStock ? 'STOK HABIS' : `Sisa Stok: ${item.stock}`;
@@ -146,7 +146,6 @@
         const id = document.getElementById('menu-id').value;
         const name = document.getElementById('name').value;
         const price = parseInt(document.getElementById('price').value);
-        // Ambil nilai Stok
         const stock = parseInt(document.getElementById('stock').value); 
         const category = document.getElementById('category').value;
         const desc = document.getElementById('desc').value;
@@ -179,7 +178,7 @@
             document.getElementById('menu-id').value = key;
             document.getElementById('name').value = data.name;
             document.getElementById('price').value = data.price;
-            document.getElementById('stock').value = data.stock; // Isi form stok
+            document.getElementById('stock').value = data.stock;
             document.getElementById('category').value = data.category;
             document.getElementById('desc').value = data.desc || "";
             document.getElementById('supportsAddons').value = data.supportsAddons ? "true" : "false";
