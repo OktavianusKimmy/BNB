@@ -522,6 +522,7 @@
         </svg>
     </div>
     <script type="module">
+        import { getDatabase, ref, onValue, push, set, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         // --- 1. IMPORT FIREBASE (JANGAN DIUBAH) ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -839,50 +840,82 @@
             }
         }
 
+        // --- GANTI FUNGSI confirmOrderAutomatic DENGAN INI ---
         window.confirmOrderAutomatic = async function() {
             const name = document.getElementById('cust-name').value.trim();
-            const cls = document.getElementById('cust-class').value;
             const phone = document.getElementById('cust-phone').value.trim();
             
-            let baseTotal = window.cart.reduce((sum, item) => sum + (item.finalPrice * item.qty), 0);
-            let finalTotal = baseTotal + window.lastUniqueCode;
-            let orderId = "ORD-" + Date.now().toString().slice(-6);
-
-            let itemsReport = window.cart.map(i => `- ${i.name} (${i.qty}x) ${i.addOns.length ? '[' + i.addOns.map(a=>a.name).join(',') + ']' : ''}`).join('\n');
+            // Validasi sederhana
+            if(!name || !phone) return alert("Isi nama dan nomor HP dulu!");
 
             const btn = document.querySelector('.btn-whatsapp-confirm');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '⏳ Sedang Memproses...';
+            btn.innerHTML = '⏳ Memproses Stok...';
             btn.disabled = true;
 
+            // --- LOGIKA POTONG STOK (TRANSACTION) ---
+            // Kita cek satu-satu item di keranjang
+            const updates = window.cart.map(item => {
+                const itemRef = ref(db, 'menu/' + item.productId + '/stock');
+                
+                // Jalankan transaksi Firebase
+                return runTransaction(itemRef, (currentStock) => {
+                    if (currentStock === null) return 0; // Data gak ada
+                    
+                    if (currentStock >= item.qty) {
+                        // Jika stok cukup, kurangi
+                        return currentStock - item.qty;
+                    } else {
+                        // Jika stok kurang, batalkan transaksi (return undefined)
+                        return; 
+                    }
+                });
+            });
+
             try {
-                const response = await fetch('/api/process-order', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        orderId, name, classInfo: cls, phone,
-                        total: baseTotal, uniqueCode: window.lastUniqueCode, finalTotal,
-                        items: itemsReport
-                    })
+                // Tunggu semua proses potong stok selesai
+                const results = await Promise.all(updates);
+                
+                // Cek apakah ada yang gagal (committed = false berarti stok abis/batal)
+                const failed = results.some(result => !result.committed);
+
+                if (failed) {
+                    alert("❌ Maaf! Salah satu item di keranjang stoknya sudah habis duluan dibeli orang lain.");
+                    btn.innerHTML = 'Coba Lagi';
+                    btn.disabled = false;
+                    // Tips: Sebaiknya reload halaman atau update keranjang
+                    return;
+                }
+
+                // --- KALAU SUKSES POTONG STOK, BARU PROSES ORDER ---
+                // (Di sini kamu bisa panggil API Vercel kamu atau simpan order ke Firebase 'orders')
+                
+                let orderId = "ORD-" + Date.now().toString().slice(-6);
+                let itemsReport = window.cart.map(i => `${i.name} (${i.qty}x)`).join(', ');
+
+                // Simpan Log Order ke Firebase (Opsional, biar admin bisa liat history)
+                const ordersRef = ref(db, 'orders/' + orderId);
+                set(ordersRef, {
+                    customer: name,
+                    phone: phone,
+                    items: itemsReport,
+                    total: document.getElementById('payment-total').innerText,
+                    status: 'pending',
+                    timestamp: Date.now()
                 });
 
-                if (!response.ok) throw new Error('Gagal proses order');
-
                 window.toggleModal('payment-modal');
-                alert(`✅ PESANAN BERHASIL!\nOrder ID: ${orderId}\nMohon tunggu verifikasi admin.`);
+                alert(`✅ TERIMA KASIH!\nOrder ID: ${orderId}\nStok sudah otomatis diamankan untukmu.`);
                 
+                // Bersihkan keranjang
                 window.cart = [];
                 window.updateCartUI();
-                document.getElementById('cust-name').value = '';
-                document.getElementById('cust-phone').value = '';
-                document.getElementById('cust-class').value = '';
+                window.location.reload(); // Reload biar data stok terbaru muncul
 
             } catch (error) {
                 console.error(error);
-                alert("Terjadi kesalahan koneksi.");
-            } finally {
-                btn.innerHTML = originalText;
+                alert("Terjadi kesalahan koneksi saat memproses stok.");
                 btn.disabled = false;
+                btn.innerHTML = 'SAYA SUDAH TRANSFER';
             }
         }
 

@@ -10,11 +10,15 @@
         .container { max-width: 800px; margin: 0 auto; }
         h1 { color: #a4a4e0; text-align: center; }
         
+        /* Tombol Kembali */
+        .btn-back { display: inline-block; text-decoration: none; color: white; background: #333; padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; }
+        .btn-back:hover { background: #555; }
+
         /* Form Input */
         .admin-form { background: #24245e; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #a4a4e0; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; }
-        input, select { width: 100%; padding: 10px; background: #15153a; border: 1px solid #a4a4e0; color: white; border-radius: 5px; }
+        input, select { width: 100%; padding: 10px; background: #15153a; border: 1px solid #a4a4e0; color: white; border-radius: 5px; box-sizing: border-box; }
         button { cursor: pointer; padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; }
         .btn-save { background: #a4a4e0; color: #19194d; width: 100%; }
         
@@ -22,16 +26,19 @@
         .menu-list { display: flex; flex-direction: column; gap: 10px; }
         .menu-item-card { background: #24245e; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #a4a4e0; }
         .menu-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .stock-info { color: #4ade80; font-weight: bold; font-size: 0.9rem; }
+        .out-of-stock { color: #ff4d4d; }
+        
         .actions { display: flex; gap: 10px; }
         .btn-edit { background: #FFC107; color: black; }
         .btn-delete { background: #FF4D4D; color: white; }
-        .btn-sold { background: #4CAF50; color: white; }
-        .is-sold-out { opacity: 0.5; filter: grayscale(100%); border-left-color: #555; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <a href="index.html" class="btn-back">⬅ Kembali ke Menu Utama</a>
+
     <h1>Admin Menu Manager</h1>
 
     <div class="admin-form">
@@ -44,6 +51,10 @@
         <div class="form-group">
             <label>Harga (Angka saja)</label>
             <input type="number" id="price" placeholder="Contoh: 15000">
+        </div>
+        <div class="form-group">
+            <label>Stok Awal</label>
+            <input type="number" id="stock" placeholder="Contoh: 50" value="10">
         </div>
         <div class="form-group">
             <label>Kategori</label>
@@ -67,19 +78,18 @@
         <button onclick="resetForm()" style="background: transparent; color: #aaa; width: 100%; margin-top: 10px;">Batal / Reset</button>
     </div>
 
-    <h3>Daftar Menu Saat Ini</h3>
+    <h3>Daftar Menu & Stok</h3>
     <div id="menu-list" class="menu-list">
         <p>Memuat data...</p>
     </div>
 </div>
 
 <script type="module">
-    // --- 1. KONFIGURASI FIREBASE ---
-    // PASTE CONFIG ANDA DI SINI
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, set, remove, onValue, update } 
+    import { getDatabase, ref, push, remove, onValue, update } 
     from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+    // --- PASTE CONFIG FIREBASE KAMU DISINI ---
     const firebaseConfig = {
         apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
         authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
@@ -94,9 +104,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // --- 2. LOGIKA APLIKASI ---
-    
-    // Baca Data Realtime
+    // --- LOGIKA APLIKASI ---
     const menuListEl = document.getElementById('menu-list');
     const menuRef = ref(db, 'menu');
 
@@ -109,78 +117,70 @@
             return;
         }
 
-        // Loop data object ke array
         Object.keys(data).forEach(key => {
             const item = data[key];
-            const soldClass = item.isSoldOut ? 'is-sold-out' : '';
-            const soldBtnText = item.isSoldOut ? 'Stok Ada' : 'Habis';
-            const soldBtnColor = item.isSoldOut ? '#4CAF50' : '#555'; // Hijau utk balikin, abu utk abisin
+            // Logika Stok Habis
+            const isOutOfStock = item.stock <= 0;
+            const stockClass = isOutOfStock ? 'out-of-stock' : 'stock-info';
+            const stockText = isOutOfStock ? 'STOK HABIS' : `Sisa Stok: ${item.stock}`;
+            const cardStyle = isOutOfStock ? 'opacity: 0.6; border-color: #555;' : '';
 
             const div = document.createElement('div');
-            div.className = `menu-item-card ${soldClass}`;
+            div.className = `menu-item-card`;
+            div.style = cardStyle;
             div.innerHTML = `
                 <div class="menu-info">
                     <h3>${item.name} (${item.category})</h3>
                     <div>Rp ${item.price}</div>
-                    <small>${item.desc || ''}</small>
+                    <div class="${stockClass}">${stockText}</div>
                 </div>
                 <div class="actions">
                     <button class="btn-edit" onclick="editItem('${key}')">Edit</button>
-                    <button class="btn-sold" style="background:${soldBtnColor}" onclick="toggleSold('${key}', ${item.isSoldOut})">${soldBtnText}</button>
-                    <button class="btn-delete" onclick="deleteItem('${key}')">X</button>
+                    <button class="btn-delete" onclick="deleteItem('${key}')">Hapus</button>
                 </div>
             `;
             menuListEl.appendChild(div);
         });
     });
 
-    // Fungsi Simpan (Create / Update)
     window.saveMenu = function() {
         const id = document.getElementById('menu-id').value;
         const name = document.getElementById('name').value;
         const price = parseInt(document.getElementById('price').value);
+        // Ambil nilai Stok
+        const stock = parseInt(document.getElementById('stock').value); 
         const category = document.getElementById('category').value;
         const desc = document.getElementById('desc').value;
         const supportsAddons = document.getElementById('supportsAddons').value === "true";
 
-        if(!name || !price) return alert("Nama dan Harga wajib diisi!");
+        if(!name || !price || isNaN(stock)) return alert("Nama, Harga, dan Stok wajib diisi!");
 
-        const itemData = { name, price, category, desc, supportsAddons, isSoldOut: false };
+        const itemData = { name, price, stock, category, desc, supportsAddons };
         
-        // Kalau sedang edit, pertahankan status sold out lama
         if(id) {
-            // Update
-            update(ref(db, 'menu/' + id), { name, price, category, desc, supportsAddons })
-                .then(() => { alert("Berhasil diupdate!"); resetForm(); })
+            update(ref(db, 'menu/' + id), itemData)
+                .then(() => { alert("Menu diupdate!"); resetForm(); })
                 .catch(e => alert(e.message));
         } else {
-            // Create New
             push(menuRef, itemData)
-                .then(() => { alert("Menu berhasil ditambah!"); resetForm(); })
+                .then(() => { alert("Menu ditambah!"); resetForm(); })
                 .catch(e => alert(e.message));
         }
     }
 
-    // Fungsi Hapus
     window.deleteItem = function(key) {
         if(confirm("Yakin hapus menu ini?")) {
             remove(ref(db, 'menu/' + key));
         }
     }
 
-    // Fungsi Toggle Sold Out
-    window.toggleSold = function(key, currentStatus) {
-        update(ref(db, 'menu/' + key), { isSoldOut: !currentStatus });
-    }
-
-    // Fungsi Taruh data ke Form (Edit)
     window.editItem = function(key) {
-        // Ambil data dari Firebase sekali saja utk ditaruh di form
         onValue(ref(db, 'menu/' + key), (snapshot) => {
             const data = snapshot.val();
             document.getElementById('menu-id').value = key;
             document.getElementById('name').value = data.name;
             document.getElementById('price').value = data.price;
+            document.getElementById('stock').value = data.stock; // Isi form stok
             document.getElementById('category').value = data.category;
             document.getElementById('desc').value = data.desc || "";
             document.getElementById('supportsAddons').value = data.supportsAddons ? "true" : "false";
@@ -194,6 +194,7 @@
         document.getElementById('menu-id').value = "";
         document.getElementById('name').value = "";
         document.getElementById('price').value = "";
+        document.getElementById('stock').value = "10";
         document.getElementById('desc').value = "";
         document.getElementById('form-title').innerText = "Tambah Menu Baru";
     }
