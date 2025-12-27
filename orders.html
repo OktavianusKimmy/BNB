@@ -9,11 +9,7 @@
         body { background-color: #19194d; color: white; font-family: 'Montserrat', sans-serif; padding: 20px; }
         h1 { text-align: center; color: #a4a4e0; margin-bottom: 20px; }
         
-        /* Tombol Kembali */
-        .btn-back { 
-            display: inline-block; text-decoration: none; color: white; background: #333; 
-            padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; border: none; cursor: pointer;
-        }
+        .btn-back { display: inline-block; text-decoration: none; color: white; background: #333; padding: 8px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 0.9rem; border: none; cursor: pointer; }
         .btn-back:hover { background: #555; }
 
         /* Controls */
@@ -36,39 +32,28 @@
         td { padding: 15px; text-align: left; border-bottom: 1px solid #444480; vertical-align: top; } 
         tr:hover { background-color: #2f2f7a; }
 
-        /* List Styling */
-        .item-list div { margin-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 4px; }
-        .item-list div:last-child { border-bottom: none; }
-        .addon-list div { margin-bottom: 8px; color: #FFC107; font-size: 0.9rem; padding-bottom: 4px; height: 21px; }
-
-        /* --- STYLE BARU: TOMBOL STATUS --- */
-        .status-container {
-            display: flex; gap: 10px; align-items: center;
+        /* --- PERBAIKAN LIST (ALIGNMENT) --- */
+        .line-item {
+            display: flex;
+            align-items: center;
+            min-height: 24px; /* Tinggi minimum agar item & addon sejajar */
+            margin-bottom: 5px;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            padding-bottom: 2px;
         }
-
-        .btn-status {
-            padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; 
-            border: none; width: 100px; transition: 0.3s;
-            font-size: 0.85rem;
-        }
-
-        /* Status Belum (Abu-abu) */
-        .status-pending {
-            background-color: #666; color: #ccc;
-        }
-        .status-pending:hover { background-color: #777; }
-
-        /* Status Selesai (Hijau) */
-        .status-done {
-            background-color: #4ade80; color: #000;
-        }
+        .line-item:last-child { border-bottom: none; }
         
-        /* Tombol Hapus Kecil */
-        .btn-trash {
-            background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.5;
-        }
-        .btn-trash:hover { opacity: 1; transform: scale(1.1); }
+        .addon-text { color: #FFC107; font-size: 0.85rem; }
+        .empty-addon { opacity: 0.3; }
 
+        /* STATUS & ACTION */
+        .status-container { display: flex; gap: 10px; align-items: center; }
+        .btn-status { padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border: none; width: 100px; transition: 0.3s; font-size: 0.85rem; }
+        .status-pending { background-color: #666; color: #ccc; }
+        .status-pending:hover { background-color: #777; }
+        .status-done { background-color: #4ade80; color: #000; }
+        .btn-trash { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.5; }
+        .btn-trash:hover { opacity: 1; transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -186,7 +171,7 @@
             renderTable(filteredData);
         }
 
-        // --- 4. RENDER TABEL ---
+        // --- 4. RENDER TABEL (YANG SUDAH DIPERBAIKI) ---
         function renderTable(dataArray) {
             tableBody.innerHTML = '';
             let count = 0;
@@ -207,41 +192,53 @@
                 let dateObj = new Date(order.timestamp);
                 let timeStr = dateObj.toLocaleDateString('id-ID') + '<br><small>' + dateObj.toLocaleTimeString('id-ID') + '</small>';
 
-                // Parsing Item & Addons
+                // --- LOGIKA PARSING ITEM & ADDONS ---
                 let itemsHtml = '';
                 let addonsHtml = '';
 
+                // SKENARIO 1: Data Baru (Punya JSON orderDetails)
                 if (order.orderDetails) {
                     try {
                         const cart = JSON.parse(order.orderDetails);
+                        
                         cart.forEach(item => {
-                            itemsHtml += `<div>• ${item.name} <b>(${item.qty}x)</b></div>`;
+                            // Kolom Kiri: Item
+                            itemsHtml += `<div class="line-item">• ${item.name} <b>(${item.qty}x)</b></div>`;
+                            
+                            // Kolom Kanan: Add-on (Harus ada div walaupun kosong biar sejajar)
                             if (item.addOns && item.addOns.length > 0) {
                                 const names = item.addOns.map(a => a.name).join(', ');
-                                addonsHtml += `<div>+ ${names}</div>`;
+                                addonsHtml += `<div class="line-item addon-text">+ ${names}</div>`;
                             } else {
-                                addonsHtml += `<div>-</div>`;
+                                addonsHtml += `<div class="line-item empty-addon">-</div>`;
                             }
                         });
                     } catch (e) {
-                        itemsHtml = order.items;
+                        console.error("JSON Error", e);
+                        // Fallback kalau JSON error
+                        itemsHtml = order.items; 
                         addonsHtml = '-';
                     }
-                } else {
-                    itemsHtml = order.items.split(', ').join('<br>• ');
-                    if(itemsHtml) itemsHtml = '• ' + itemsHtml;
-                    addonsHtml = '<span style="opacity:0.5">-</span>';
+                } 
+                // SKENARIO 2: Data Lama (String Biasa dipisah koma)
+                else {
+                    // Kita paksa split berdasarkan koma agar jadi list ke bawah
+                    // Regex /, ?/ artinya pisahkan koma yang mungkin diikuti spasi
+                    const itemsArray = order.items.split(/, ?/); 
+                    
+                    itemsArray.forEach(itm => {
+                        if(itm.trim() !== "") {
+                            itemsHtml += `<div class="line-item">• ${itm}</div>`;
+                            // Pastikan kolom add-on punya baris kosong yang sejajar
+                            addonsHtml += `<div class="line-item empty-addon">-</div>`; 
+                        }
+                    });
                 }
 
-                // --- LOGIKA TOMBOL STATUS ---
-                // Cek apakah status di database sudah "true" (Done) atau belum
+                // --- STATUS ---
                 const isDone = order.isDone === true; 
-                
-                // Tentukan Warna & Teks
                 const btnClass = isDone ? 'status-done' : 'status-pending';
                 const btnText = isDone ? 'DONE ✅' : 'NOT DONE';
-                
-                // Tentukan status kebalikannya untuk fungsi toggle (kalau diklik)
                 const nextStatus = !isDone; 
 
                 let row = `
@@ -256,8 +253,8 @@
                                 ${order.phone} ↗
                             </a>
                         </td>
-                        <td class="item-list">${itemsHtml}</td>
-                        <td class="addon-list">${addonsHtml}</td>
+                        <td style="vertical-align:top;">${itemsHtml}</td>
+                        <td style="vertical-align:top;">${addonsHtml}</td>
                         <td style="font-weight:bold; color:#a4a4e0;">${order.total}</td>
                         
                         <td>
