@@ -69,6 +69,21 @@
             sessionStorage.removeItem('isAdmin');
             window.location.href = 'index.html';
         }
+
+        // --- Di file ADMIN.HTML ---
+        import { update, ref } from "...firebase..."; 
+
+        window.savePOSettings = function() {
+            const isActive = document.getElementById('admin-po-toggle').checked;
+            const dateValue = document.getElementById('admin-po-date').value; // Format: 2025-11-19
+
+            update(ref(db, 'settings/preorder'), {
+                isActive: isActive,
+                closeDate: dateValue
+            }).then(() => {
+                alert("Pengaturan PO Berhasil Disimpan!");
+            });
+        }
     </script>
 
     <h1>ADMIN DASHBOARD 👮‍♂️</h1>
@@ -80,6 +95,28 @@
     <button class="btn-menu btn-stock" onclick="window.location.href='stock.html'">
         📦 Atur Menu & Stok
     </button>
+
+    <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+        <h3 class="text-lg font-bold mb-4">Pengaturan Pre-Order</h3>
+        
+        <div class="flex items-center mb-4">
+            <input id="admin-po-toggle" type="checkbox" class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300">
+            <label for="admin-po-toggle" class="ml-2 text-gray-900 font-medium">
+                Tampilkan Banner & Aktifkan Batas Waktu
+            </label>
+        </div>
+
+        <div class="mb-4">
+            <label for="admin-po-date" class="block text-sm font-medium text-gray-700 mb-1">
+                Tanggal Tutup Pre-Order
+            </label>
+            <input type="date" id="admin-po-date" class="border border-gray-300 rounded p-2 w-full max-w-xs">
+        </div>
+
+        <button onclick="savePOSettings()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Simpan Pengaturan
+        </button>
+    </div>
 
     <button class="btn-menu btn-logout" onclick="logout()">
         ⬅ LOGOUT

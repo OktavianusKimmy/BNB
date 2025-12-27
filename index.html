@@ -402,15 +402,11 @@
     </style>
 </head>
 <body>
-    <div id="countdown-banner">
-        Pre-Order Ditutup Dalam: 
-        <div id="timer">
-            <div><span id="days">0</span> Hari</div>
-            <div><span id="hours">0</span> Jam</div>
-            <div><span id="minutes">0</span> Menit</div>
-            <div><span id="seconds">0</span> Detik</div>
-        </div>
-    </div>
+    <div id="po-banner" class="hidden bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4">
+    <p class="text-yellow-700">
+        Pre-Order ditutup pada: <span id="display-po-date" class="font-bold">--/--/----</span>
+    </p>
+</div>
     <div class="container">
         <header onclick="window.location.href='leaderboard.html'">
             <h1>Brew & Beats</h1>
@@ -543,6 +539,79 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+
+        // --- LOGIKA DINAMIS PRE-ORDER (MENGGANTIKAN HARDCODED TIMER) ---
+        
+        // 1. Ambil Settingan dari Firebase (Bukan variabel lokal)
+        const poSettingRef = ref(db, 'settings/preorder');
+
+        onValue(poSettingRef, (snapshot) => {
+            const config = snapshot.val();
+            
+            // Jika data belum ada di database, buat default (Mati)
+            if (!config) {
+                updatePODisplay({ isActive: false, closeDate: '' });
+            } else {
+                updatePODisplay(config);
+            }
+        });
+
+        // 2. Fungsi Mengatur Tampilan Berdasarkan Config
+        let countdownInterval; // Variabel untuk menyimpan timer agar bisa di-reset
+
+        function updatePODisplay(config) {
+            const bannerEl = document.getElementById('po-banner');
+            const overlayContainer = document.getElementById('overlay-container');
+            const displayDateEl = document.getElementById('display-po-date');
+            
+            // Bersihkan timer lama jika ada update data
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            // SKENARIO A: Banner Dimatikan Admin (Pre-Order dianggap TIDAK ADA / Selalu Buka)
+            if (!config.isActive) {
+                bannerEl.classList.add('hidden'); // Sembunyikan banner kuning
+                overlayContainer.innerHTML = '';      // Hapus layar penutup (overlay)
+                overlayContainer.className = '';      // Hapus class overlay
+                return; // Selesai, user bebas pesan
+            }
+
+            // SKENARIO B: Banner Hidup (Cek Tanggal)
+            bannerEl.classList.remove('hidden'); // Munculkan banner kuning
+            
+            // Tampilkan tanggal di banner
+            const targetDate = new Date(config.closeDate); // Pastikan format di DB: "YYYY-MM-DD HH:MM" atau sejenisnya
+            // Jika admin cuma simpan tanggal (YYYY-MM-DD), kita set jamnya ke akhir hari (23:59:59)
+            targetDate.setHours(23, 59, 59);
+
+            displayDateEl.innerText = targetDate.toLocaleDateString('id-ID', { 
+                day: 'numeric', month: 'long', year: 'numeric' 
+            });
+
+            // Jalankan Hitung Mundur
+            countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = targetDate.getTime() - now;
+
+                // Jika Waktu Habis -> TAMPILKAN OVERLAY BLOKIR
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    overlayContainer.className = "po-closed-overlay";
+                    overlayContainer.innerHTML = `
+                        <div class="overlay-content">
+                            <h2>Pre-Order Ditutup</h2> 
+                            <p>Sampai jumpa di PO berikutnya.</p>
+                            <a href="leaderboard.html">Lihat Klasemen</a>
+                        </div>`;
+                } else {
+                    // Jika Masih Ada Waktu -> Pastikan Overlay Kosong
+                    overlayContainer.innerHTML = '';
+                    overlayContainer.className = '';
+                    
+                    // Opsional: Jika Anda ingin menampilkan timer jam/menit di banner kuning
+                    // Anda bisa menambahkan elemen span id="hours", dll di dalam HTML banner kuning tadi
+                }
+            }, 1000);
+        }
 
         // --- 3. VARIABEL GLOBAL ---
         // Kita pakai 'window.' supaya bisa dibaca di seluruh halaman
@@ -975,59 +1044,7 @@
         }
 
         // --- 6. LOGIKA COUNTDOWN (Timer) ---
-        window.startCountdown = function() {
-            // Ganti tanggal ini sesuai keinginan
-            const countdownDate = new Date("November 19, 2025 23:59:59").getTime();
-            
-            // Definisikan 'overlay' (Ambil elemen yang baru kita buat tadi)
-            const overlay = document.getElementById("overlay-container"); 
-
-            const timerInterval = setInterval(function() {
-                const now = new Date().getTime();
-                const distance = countdownDate - now;
-
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                // Update angka di banner atas
-                const daysEl = document.getElementById("days");
-                if(daysEl) {
-                    daysEl.innerText = days;
-                    document.getElementById("hours").innerText = hours;
-                    document.getElementById("minutes").innerText = minutes;
-                    document.getElementById("seconds").innerText = seconds;
-                }
-
-                // Jika Waktu Habis
-                if (distance < 0) {
-                    clearInterval(timerInterval);
-                    
-                    // Pastikan elemen overlay ada sebelum diisi
-                    if (overlay) {
-                        // Tambahkan class CSS biar styling-nya jalan
-                        overlay.className = "po-closed-overlay"; 
-                        
-                        // Isi konten pesan penutup
-                        overlay.innerHTML = `
-                            <div class="overlay-content">
-                                <h2>Pre-Order Ditutup</h2> 
-                                <p>Sampai jumpa di PO berikutnya.</p>
-                                <a href="leaderboard.html">Lihat Klasemen</a>
-                            </div>`;
-                    }
-                    
-                    // Update banner atas jadi 00:00:00
-                    if(daysEl) {
-                        document.getElementById("days").innerText = "0";
-                        document.getElementById("hours").innerText = "0";
-                        document.getElementById("minutes").innerText = "0";
-                        document.getElementById("seconds").innerText = "0";
-                    }
-                }
-            }, 1000);
-        }
+        
         
         // --- 7. ADMIN LOGIN (SECURE VIA VERCEL API) ---
         
@@ -1074,6 +1091,83 @@
         
         // Jalankan timer saat load
         window.startCountdown();
+
+                // --- VARIABEL KONFIGURASI (Biasanya diambil dari Database/LocalStorage) ---
+        // Contoh nilai default (sebelum admin mengubahnya)
+        let poConfig = {
+            isActive: true,       // true = Banner Tampil & Cek Tanggal
+            closeDate: '2025-12-31' // Format YYYY-MM-DD
+        };
+
+        // --- FUNGSI 1: LOAD SETTING SAAT HALAMAN DIBUKA ---
+        function loadPOSettings() {
+            // Di real app, ambil data ini dari database/API
+            // Untuk contoh ini, kita simulasikan data tersimpan
+            
+            const bannerEl = document.getElementById('po-banner');
+            const dateDisplayEl = document.getElementById('display-po-date');
+
+            // LOGIKA UI: Tampilkan/Sembunyikan Banner
+            if (poConfig.isActive) {
+                bannerEl.classList.remove('hidden'); // Tampilkan banner
+                // Format tanggal agar cantik (opsional)
+                const dateObj = new Date(poConfig.closeDate);
+                dateDisplayEl.innerText = dateObj.toLocaleDateString('id-ID'); 
+            } else {
+                bannerEl.classList.add('hidden'); // Sembunyikan banner
+            }
+        }
+
+        // --- FUNGSI 2: CEK APAKAH USER BOLEH PESAN? (LOGIKA UTAMA) ---
+        function checkCanOrder() {
+            // ATURAN 1: Jika PO Tidak Aktif (Banner Hidden), maka ORDER SELALU BISA (return true)
+            if (!poConfig.isActive) {
+                return true; 
+            }
+
+            // ATURAN 2: Jika PO Aktif, Cek Tanggal
+            const today = new Date();
+            // Set waktu ke 00:00:00 agar perbandingan adil (opsional, tergantung kebutuhan jam)
+            today.setHours(0,0,0,0);
+            
+            const closeDate = new Date(poConfig.closeDate);
+            
+            // Jika hari ini <= tanggal tutup, boleh pesan
+            if (today <= closeDate) {
+                return true;
+            } else {
+                return false; // Sudah lewat tanggal
+            }
+        }
+
+        // --- FUNGSI 3: CONTOH SAAT TOMBOL PESAN DIKLIK ---
+        function handleOrderClick() {
+            if (checkCanOrder()) {
+                alert("Berhasil masuk ke form pemesanan!");
+                // Lanjutkan ke logika checkout...
+            } else {
+                alert("Maaf, Pre-Order sudah ditutup.");
+                // Disable tombol atau tampilkan pesan error
+            }
+        }
+
+        // --- FUNGSI 4: SIMPAN PENGATURAN ADMIN ---
+        function savePOSettings() {
+            const isActiveInput = document.getElementById('admin-po-toggle').checked;
+            const dateInput = document.getElementById('admin-po-date').value;
+
+            if (isActiveInput && !dateInput) {
+                alert("Mohon isi tanggal penutupan jika PO diaktifkan.");
+                return;
+            }
+
+            // Update Config
+            poConfig.isActive = isActiveInput;
+            poConfig.closeDate = dateInput;
+
+            alert("Pengaturan disimpan!");
+            loadPOSettings(); // Refresh tampilan banner
+        }
 
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
