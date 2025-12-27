@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Brew & Beats</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #19194d; color: white; font-family: 'Montserrat', sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #a4a4e0; text-align: center; }
+        
+        /* Form Input */
+        .admin-form { background: #24245e; padding: 20px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #a4a4e0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 10px; background: #15153a; border: 1px solid #a4a4e0; color: white; border-radius: 5px; }
+        button { cursor: pointer; padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; }
+        .btn-save { background: #a4a4e0; color: #19194d; width: 100%; }
+        
+        /* List Menu */
+        .menu-list { display: flex; flex-direction: column; gap: 10px; }
+        .menu-item-card { background: #24245e; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #a4a4e0; }
+        .menu-info h3 { margin: 0 0 5px 0; font-size: 1.1rem; }
+        .actions { display: flex; gap: 10px; }
+        .btn-edit { background: #FFC107; color: black; }
+        .btn-delete { background: #FF4D4D; color: white; }
+        .btn-sold { background: #4CAF50; color: white; }
+        .is-sold-out { opacity: 0.5; filter: grayscale(100%); border-left-color: #555; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Admin Menu Manager</h1>
+
+    <div class="admin-form">
+        <h3 id="form-title">Tambah Menu Baru</h3>
+        <input type="hidden" id="menu-id">
+        <div class="form-group">
+            <label>Nama Menu</label>
+            <input type="text" id="name" placeholder="Contoh: Americano">
+        </div>
+        <div class="form-group">
+            <label>Harga (Angka saja)</label>
+            <input type="number" id="price" placeholder="Contoh: 15000">
+        </div>
+        <div class="form-group">
+            <label>Kategori</label>
+            <select id="category">
+                <option value="DRINKS">DRINKS</option>
+                <option value="TREATS">TREATS</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Deskripsi (Opsional)</label>
+            <input type="text" id="desc" placeholder="Contoh: Best Seller">
+        </div>
+        <div class="form-group">
+            <label>Bisa Kustom? (Add-ons)</label>
+            <select id="supportsAddons">
+                <option value="true">Ya (Untuk Minuman)</option>
+                <option value="false">Tidak (Untuk Makanan)</option>
+            </select>
+        </div>
+        <button class="btn-save" onclick="saveMenu()">SIMPAN MENU</button>
+        <button onclick="resetForm()" style="background: transparent; color: #aaa; width: 100%; margin-top: 10px;">Batal / Reset</button>
+    </div>
+
+    <h3>Daftar Menu Saat Ini</h3>
+    <div id="menu-list" class="menu-list">
+        <p>Memuat data...</p>
+    </div>
+</div>
+
+<script type="module">
+    // --- 1. KONFIGURASI FIREBASE ---
+    // PASTE CONFIG ANDA DI SINI
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, set, remove, onValue, update } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
+        authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
+        databaseURL: "https://brew-and-beats-5fbf2-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "brew-and-beats-5fbf2",
+        storageBucket: "brew-and-beats-5fbf2.firebasestorage.app",
+        messagingSenderId: "243138026852",
+        appId: "1:243138026852:web:73d5e7cdb446949033ee71",
+        measurementId: "G-S3ZX1F1FTP"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // --- 2. LOGIKA APLIKASI ---
+    
+    // Baca Data Realtime
+    const menuListEl = document.getElementById('menu-list');
+    const menuRef = ref(db, 'menu');
+
+    onValue(menuRef, (snapshot) => {
+        menuListEl.innerHTML = "";
+        const data = snapshot.val();
+        
+        if (!data) {
+            menuListEl.innerHTML = "<p>Belum ada menu.</p>";
+            return;
+        }
+
+        // Loop data object ke array
+        Object.keys(data).forEach(key => {
+            const item = data[key];
+            const soldClass = item.isSoldOut ? 'is-sold-out' : '';
+            const soldBtnText = item.isSoldOut ? 'Stok Ada' : 'Habis';
+            const soldBtnColor = item.isSoldOut ? '#4CAF50' : '#555'; // Hijau utk balikin, abu utk abisin
+
+            const div = document.createElement('div');
+            div.className = `menu-item-card ${soldClass}`;
+            div.innerHTML = `
+                <div class="menu-info">
+                    <h3>${item.name} (${item.category})</h3>
+                    <div>Rp ${item.price}</div>
+                    <small>${item.desc || ''}</small>
+                </div>
+                <div class="actions">
+                    <button class="btn-edit" onclick="editItem('${key}')">Edit</button>
+                    <button class="btn-sold" style="background:${soldBtnColor}" onclick="toggleSold('${key}', ${item.isSoldOut})">${soldBtnText}</button>
+                    <button class="btn-delete" onclick="deleteItem('${key}')">X</button>
+                </div>
+            `;
+            menuListEl.appendChild(div);
+        });
+    });
+
+    // Fungsi Simpan (Create / Update)
+    window.saveMenu = function() {
+        const id = document.getElementById('menu-id').value;
+        const name = document.getElementById('name').value;
+        const price = parseInt(document.getElementById('price').value);
+        const category = document.getElementById('category').value;
+        const desc = document.getElementById('desc').value;
+        const supportsAddons = document.getElementById('supportsAddons').value === "true";
+
+        if(!name || !price) return alert("Nama dan Harga wajib diisi!");
+
+        const itemData = { name, price, category, desc, supportsAddons, isSoldOut: false };
+        
+        // Kalau sedang edit, pertahankan status sold out lama
+        if(id) {
+            // Update
+            update(ref(db, 'menu/' + id), { name, price, category, desc, supportsAddons })
+                .then(() => { alert("Berhasil diupdate!"); resetForm(); })
+                .catch(e => alert(e.message));
+        } else {
+            // Create New
+            push(menuRef, itemData)
+                .then(() => { alert("Menu berhasil ditambah!"); resetForm(); })
+                .catch(e => alert(e.message));
+        }
+    }
+
+    // Fungsi Hapus
+    window.deleteItem = function(key) {
+        if(confirm("Yakin hapus menu ini?")) {
+            remove(ref(db, 'menu/' + key));
+        }
+    }
+
+    // Fungsi Toggle Sold Out
+    window.toggleSold = function(key, currentStatus) {
+        update(ref(db, 'menu/' + key), { isSoldOut: !currentStatus });
+    }
+
+    // Fungsi Taruh data ke Form (Edit)
+    window.editItem = function(key) {
+        // Ambil data dari Firebase sekali saja utk ditaruh di form
+        onValue(ref(db, 'menu/' + key), (snapshot) => {
+            const data = snapshot.val();
+            document.getElementById('menu-id').value = key;
+            document.getElementById('name').value = data.name;
+            document.getElementById('price').value = data.price;
+            document.getElementById('category').value = data.category;
+            document.getElementById('desc').value = data.desc || "";
+            document.getElementById('supportsAddons').value = data.supportsAddons ? "true" : "false";
+            
+            document.getElementById('form-title').innerText = "Edit Menu: " + data.name;
+            window.scrollTo(0,0);
+        }, { onlyOnce: true });
+    }
+
+    window.resetForm = function() {
+        document.getElementById('menu-id').value = "";
+        document.getElementById('name').value = "";
+        document.getElementById('price').value = "";
+        document.getElementById('desc').value = "";
+        document.getElementById('form-title').innerText = "Tambah Menu Baru";
+    }
+</script>
+</body>
+</html>
