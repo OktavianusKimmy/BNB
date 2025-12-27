@@ -7,28 +7,54 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body { background-color: #19194d; color: white; font-family: 'Montserrat', sans-serif; padding: 20px; }
-        h1 { text-align: center; color: #a4a4e0; margin-bottom: 30px; }
+        h1 { text-align: center; color: #a4a4e0; margin-bottom: 20px; }
         
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; background: #24245e; border-radius: 10px; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #444480; }
-        th { background-color: #a4a4e0; color: #19194d; font-weight: bold; }
-        tr:hover { background-color: #2f2f7a; }
-        
-        .status-paid { background: #4ade80; color: #000; padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold; }
-        
-        .btn-action {
-            background: #ff4d4d; color: white; border: none; padding: 8px 12px; 
-            border-radius: 5px; cursor: pointer; font-weight: bold;
+        /* --- STYLE BARU: CONTROLS (Filter & Search) --- */
+        .controls-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
-        .btn-action:hover { background: #ff0000; }
 
+        .filter-select, .search-box {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #a4a4e0;
+            background: #24245e;
+            color: white;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .filter-select { cursor: pointer; min-width: 150px; }
+        .search-box { flex-grow: 1; max-width: 400px; }
+        .search-box::placeholder { color: #aaa; }
+
+        /* --- STYLE CARD SUMMARY --- */
         .summary-box {
             display: flex; gap: 20px; justify-content: center; margin-bottom: 20px;
         }
-        .card { background: #24245e; padding: 15px 25px; border-radius: 10px; border: 1px solid #a4a4e0; text-align: center; }
-        .card h3 { margin: 0; font-size: 2rem; color: #a4a4e0; }
-        .card p { margin: 0; opacity: 0.8; }
+        .card { background: #24245e; padding: 15px 25px; border-radius: 10px; border: 1px solid #a4a4e0; text-align: center; min-width: 150px; }
+        .card h3 { margin: 0; font-size: 1.8rem; color: #a4a4e0; }
+        .card p { margin: 0; opacity: 0.8; font-size: 0.9rem; }
+
+        /* --- TABLE --- */
+        .table-container { overflow-x: auto; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        table { width: 100%; border-collapse: collapse; background: #24245e; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #444480; }
+        th { background-color: #a4a4e0; color: #19194d; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; }
+        tr:hover { background-color: #2f2f7a; }
+        
+        /* Highlight hasil search */
+        .highlight { background-color: rgba(255, 255, 0, 0.3); color: #fff; padding: 2px 4px; border-radius: 3px; }
+
+        .btn-action {
+            background: #ff4d4d; color: white; border: none; padding: 8px 12px; 
+            border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .btn-action:hover { background: #ff0000; transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -38,12 +64,20 @@
     <div class="summary-box">
         <div class="card">
             <h3 id="total-orders">0</h3>
-            <p>Total Pesanan</p>
+            <p>Jml Pesanan Tampil</p>
         </div>
         <div class="card">
             <h3 id="total-income">Rp 0</h3>
-            <p>Total Pemasukan</p>
+            <p>Total Pemasukan Tampil</p>
         </div>
+    </div>
+
+    <div class="controls-container">
+        <select id="filter-class" class="filter-select" onchange="applyFilter()">
+            <option value="ALL">📂 Semua Kelas</option>
+            </select>
+
+        <input type="text" id="search-input" class="search-box" placeholder="🔍 Cari Nama, Menu, atau No HP..." onkeyup="applyFilter()">
     </div>
 
     <div class="table-container">
@@ -66,7 +100,6 @@
     </div>
 
     <script type="module">
-        // --- CONFIG FIREBASE (SAMA PERSIS KAYAK DI INDEX.HTML) ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -84,45 +117,103 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // --- AMBIL DATA ORDER ---
+        // VARIABEL GLOBAL UNTUK MENYIMPAN DATA MENTAH
+        window.allOrdersData = []; 
+
         const ordersRef = ref(db, 'orders');
         const tableBody = document.getElementById('order-table-body');
         const totalOrdersEl = document.getElementById('total-orders');
         const totalIncomeEl = document.getElementById('total-income');
+        const classFilterEl = document.getElementById('filter-class');
 
+        // --- 1. AMBIL DATA DARI FIREBASE ---
         onValue(ordersRef, (snapshot) => {
             const data = snapshot.val();
-            tableBody.innerHTML = ''; // Bersihkan tabel
+            window.allOrdersData = []; // Reset data lokal
 
-            if (!data) {
-                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Belum ada pesanan masuk.</td></tr>';
+            if (data) {
+                // Konversi Object ke Array & Sort Paling Lama -> Paling Baru
+                window.allOrdersData = Object.entries(data).map(([key, value]) => {
+                    return { id: key, ...value };
+                }).sort((a, b) => a.timestamp - b.timestamp);
+            }
+
+            // Update Dropdown Kelas (Supaya otomatis nambah kalau ada kelas baru yg pesen)
+            populateClassDropdown();
+
+            // Render Tabel Pertama Kali
+            applyFilter();
+        });
+
+        // --- 2. POPULATE DROPDOWN KELAS OTOMATIS ---
+        function populateClassDropdown() {
+            // Ambil semua kelas unik yang ada di data pesanan
+            const uniqueClasses = [...new Set(window.allOrdersData.map(item => item.class || "Lainnya"))].sort();
+            
+            // Simpan pilihan yang sedang dipilih user (biar gak kereset pas ada data baru masuk)
+            const currentSelection = classFilterEl.value;
+
+            // Reset isi dropdown, sisakan "Semua Kelas"
+            classFilterEl.innerHTML = '<option value="ALL">📂 Semua Kelas</option>';
+
+            uniqueClasses.forEach(cls => {
+                if(cls) {
+                    classFilterEl.innerHTML += `<option value="${cls}">${cls}</option>`;
+                }
+            });
+
+            // Balikin pilihan user
+            if (uniqueClasses.includes(currentSelection)) {
+                classFilterEl.value = currentSelection;
+            }
+        }
+
+        // --- 3. FUNGSI FILTER & SEARCH (LOGIKA UTAMA) ---
+        // Kita tempel di window supaya bisa dipanggil HTML
+        window.applyFilter = function() {
+            const filterValue = document.getElementById('filter-class').value;
+            const searchValue = document.getElementById('search-input').value.toLowerCase();
+
+            let filteredData = window.allOrdersData.filter(order => {
+                // 1. Cek Filter Kelas
+                const classMatch = (filterValue === "ALL") || (order.class === filterValue);
+                
+                // 2. Cek Search (Nama, Item, atau No HP)
+                const searchString = (order.customer + " " + order.items + " " + order.phone).toLowerCase();
+                const searchMatch = searchString.includes(searchValue);
+
+                return classMatch && searchMatch;
+            });
+
+            renderTable(filteredData);
+        }
+
+        // --- 4. RENDER TABEL ---
+        function renderTable(dataArray) {
+            tableBody.innerHTML = '';
+            let count = 0;
+            let income = 0;
+
+            if (dataArray.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; opacity: 0.7;">Tidak ada data yang cocok.</td></tr>';
                 totalOrdersEl.innerText = '0';
                 totalIncomeEl.innerText = 'Rp 0';
                 return;
             }
 
-            let count = 0;
-            let income = 0;
-
-            // Loop semua order
-            // Kita pakai Object.entries supaya bisa dapat ID order-nya juga
-            Object.entries(data).forEach(([key, order]) => {
+            dataArray.forEach(order => {
                 count++;
-                
-                // Bersihkan string harga "Rp 15.000" jadi angka 15000 buat dijumlah
                 let cleanPrice = parseInt(order.total.replace(/[^0-9]/g, '')) || 0;
                 income += cleanPrice;
 
-                // Format Waktu
                 let dateObj = new Date(order.timestamp);
                 let timeStr = dateObj.toLocaleDateString('id-ID') + ' ' + dateObj.toLocaleTimeString('id-ID');
 
-                // Buat Baris Tabel
                 let row = `
                     <tr>
                         <td><small>${timeStr}</small></td>
                         <td><strong>${order.customer}</strong></td>
-                        <td>${order.class || '-'}</td>
+                        <td><span class="highlight-class">${order.class || '-'}</span></td>
                         <td>
                             <a href="https://wa.me/${order.phone}" target="_blank" style="color:#4ade80; text-decoration:none;">
                                 ${order.phone} ↗
@@ -131,19 +222,19 @@
                         <td>${order.items}</td>
                         <td style="font-weight:bold; color:#a4a4e0;">${order.total}</td>
                         <td>
-                            <button class="btn-action" onclick="deleteOrder('${key}')">Selesai</button>
+                            <button class="btn-action" onclick="deleteOrder('${order.id}')">Selesai</button>
                         </td>
                     </tr>
                 `;
                 tableBody.innerHTML += row;
             });
 
+            // Update Kartu Statistik sesuai Filter
             totalOrdersEl.innerText = count;
             totalIncomeEl.innerText = 'Rp ' + income.toLocaleString('id-ID');
-        });
+        }
 
-        // --- FUNGSI HAPUS ORDER ---
-        // Kita tempel di window supaya bisa dipanggil dari HTML onclick
+        // --- 5. HAPUS ORDER ---
         window.deleteOrder = function(orderId) {
             if (confirm('Yakin pesanan ini sudah selesai/diambil? Data akan dihapus permanen.')) {
                 remove(ref(db, 'orders/' + orderId))
