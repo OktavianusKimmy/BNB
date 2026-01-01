@@ -979,26 +979,54 @@
         }
 
         // Internal Add Item Logic
+        // --- LOGIKA TAMBAH KE KERANJANG (DENGAN PENGECEKAN DUPLIKAT) ---
         window.addItemToCartInternal = function(product, addOns) {
-            const internalId = Date.now() + Math.random().toString(36).substr(2, 9);
-            const addonsTotal = addOns.reduce((sum, ao) => sum + ao.price, 0);
-            const finalPrice = product.price + addonsTotal;
+            
+            // 1. Cari apakah item ini (Product ID + Addons yang SAMA PERSIS) sudah ada di keranjang?
+            const existingItemIndex = window.cart.findIndex(item => {
+                // Syarat 1: ID Produk harus sama
+                if (item.productId !== product.id) return false;
 
-            window.cart.push({
-                internalId: internalId,
-                productId: product.id,
-                name: product.name,
-                basePrice: product.price,
-                addOns: addOns,
-                finalPrice: finalPrice,
-                qty: 1
+                // Syarat 2: Jumlah Addons harus sama
+                if (item.addOns.length !== addOns.length) return false;
+
+                // Syarat 3: Isi Addons harus sama persis (ID-nya)
+                // Kita urutkan dulu ID-nya agar urutan klik tidak berpengaruh (misal: Gula,Es == Es,Gula)
+                const currentAddonIds = item.addOns.map(a => a.id).sort().join(',');
+                const newAddonIds = addOns.map(a => a.id).sort().join(',');
+
+                return currentAddonIds === newAddonIds;
             });
 
+            if (existingItemIndex > -1) {
+                // SKENARIO A: ITEM KEMBAR DITEMUKAN -> Cukup tambah Qty
+                window.cart[existingItemIndex].qty += 1;
+            } else {
+                // SKENARIO B: ITEM BARU / BEDA RACIKAN -> Masukkan sebagai baris baru
+                const internalId = Date.now() + Math.random().toString(36).substr(2, 9);
+                const addonsTotal = addOns.reduce((sum, ao) => sum + ao.price, 0);
+                const finalPrice = product.price + addonsTotal;
+
+                window.cart.push({
+                    internalId: internalId,
+                    productId: product.id,
+                    name: product.name,
+                    basePrice: product.price,
+                    addOns: addOns,
+                    finalPrice: finalPrice,
+                    qty: 1
+                });
+            }
+
+            // Update Tampilan
             window.updateCartUI();
             
+            // Efek Animasi Tombol Keranjang
             const floatCart = document.getElementById('floating-cart');
-            floatCart.style.transform = 'scale(1.1)';
-            setTimeout(() => floatCart.style.transform = 'scale(1)', 200);
+            if(floatCart) {
+                floatCart.style.transform = 'scale(1.1)';
+                setTimeout(() => floatCart.style.transform = 'scale(1)', 200);
+            }
         }
 
         // Update Qty
