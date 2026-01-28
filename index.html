@@ -911,21 +911,15 @@
                          action = item.supportsAddons ? `openCustomModal('${item.id}')` : `directAddToCart('${item.id}')`;
                     }
 
-                    // --- CEK GAMBAR (VERSI DEBUG) ---
+                    // Cek Gambar
                     let imgHtml = "";
-                    
-                    // Kita siapkan icon default dulu
-                    let icon = item.category === 'DRINKS' ? '🥤' : '🍪';
-                    let placeholderHtml = `<div class="menu-placeholder">${icon}</div>`;
-
                     if (item.image && item.image.trim() !== "") {
-                        // TAMPILKAN GAMBAR
-                        // Perhatikan: Saya hapus onerror yang menyembunyikan gambar
-                        // Supaya kalau error, kelihatan icon 'pecah'-nya.
-                        imgHtml = `<img src="${item.image}" alt="${item.name}" class="menu-img">`;
+                        // KODE INI YANG MENAMPILKAN GAMBAR
+                        imgHtml = `<img src="${item.image}" alt="${item.name}" class="menu-img" onerror="this.style.display='none'">`;
                     } else {
-                        // TAMPILKAN PLACEHOLDER
-                        imgHtml = placeholderHtml;
+                        // KODE INI YANG MENAMPILKAN ICON KUE/GELAS (Placeholder)
+                        let icon = item.category === 'DRINKS' ? '🥤' : '🍪';
+                        imgHtml = `<div class="menu-placeholder">${icon}</div>`;
                     }
 
                     // Render Row HTML
