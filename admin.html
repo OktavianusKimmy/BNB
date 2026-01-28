@@ -134,31 +134,11 @@
                 // Admin sudah login, muat data setting
                 loadSettings();
             } else {
-                // Belum login? Minta Password (Login pakai Firebase)
-                handleLogin();
+                // User tidak ada? Berarti dia Logout atau Nyasar.
+                // JANGAN tanya password, langsung kembalikan ke pintu depan.
+                window.location.href = 'index.html';
             }
         });
-
-        function handleLogin() {
-            const email = "kimmyyonata24@gmail.com"; // Sesuaikan dengan email di Langkah 1
-            const password = prompt("🔒 Masukkan Password Admin Database:");
-            
-            if (!password) {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            // Proses Login ke Firebase
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    alert("✅ Login Berhasil! Database terbuka.");
-                    loadSettings();
-                })
-                .catch((error) => {
-                    alert("❌ Password Salah / Error: " + error.message);
-                    window.location.href = 'index.html';
-                });
-        }
 
         // --- FUNGSI LOGOUT (YANG BENAR) ---
         window.logout = function() {
