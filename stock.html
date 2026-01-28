@@ -133,22 +133,26 @@
 
                 // Gunakan class sesuai CSS di <head> tadi (menu-item-card) agar rapi
                 const row = `
-                    <div class="menu-item-card ${soldOutClass}" style="margin-bottom:10px;">
-                        <div class="menu-info">
-                            <h3>${item.name} ${statusText}</h3>
-                            <div style="font-size:0.85rem; opacity:0.8;">${item.category} | Stok: ${item.stock}</div>
-                            <div style="font-weight:bold; margin-top:5px;">Rp ${priceFormatted}</div>
+                        <div class="menu-item-card ${soldOutClass}" style="margin-bottom:10px;">
+                            <div class="menu-info">
+                                <h3>${item.name} ${statusText}</h3>
+                                <div style="font-size:0.85rem; opacity:0.8;">${item.category} | Stok: ${item.stock}</div>
+                                <div style="font-weight:bold; margin-top:5px;">Rp ${priceFormatted}</div>
+                            </div>
+                            <div class="actions">
+                                <button onclick="editMenu('${key}')" style="background-color: #3b82f6; color: white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; margin-right:5px;">
+                                    Edit
+                                </button>
+                                
+                                <button onclick="toggleSoldOut('${key}', ${item.isSoldOut})" style="background-color: ${item.isSoldOut ? '#4ade80' : '#FFC107'}; color: #000; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
+                                    ${item.isSoldOut ? 'Set Ada' : 'Set Habis'}
+                                </button>
+                                <button onclick="deleteMenu('${key}')" class="btn-delete" style="padding:5px 10px; border-radius:5px; border:none; cursor:pointer; background-color: #ef4444; color: white;">
+                                    Hapus
+                                </button>
+                            </div>
                         </div>
-                        <div class="actions">
-                            <button onclick="toggleSoldOut('${key}', ${item.isSoldOut})" style="background-color: ${item.isSoldOut ? '#4ade80' : '#FFC107'}; color: #000; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
-                                ${item.isSoldOut ? 'Set Ada' : 'Set Habis'}
-                            </button>
-                            <button onclick="deleteMenu('${key}')" class="btn-delete" style="padding:5px 10px; border-radius:5px; border:none; cursor:pointer;">
-                                Hapus
-                            </button>
-                        </div>
-                    </div>
-                `;
+                    `;
                 menuList.innerHTML += row;
             });
         });
@@ -156,7 +160,9 @@
 
     // --- 4. FUNGSI SIMPAN MENU (SUDAH DIPERBAIKI ID-NYA) ---
     window.saveMenu = function() {
-        // PERBAIKAN: Menggunakan ID yang benar sesuai HTML ('name', 'price', dll)
+        // Ambil ID Rahasia
+        const id = document.getElementById('menu-id').value;
+        
         const name = document.getElementById('name').value;
         const price = document.getElementById('price').value;
         const stock = document.getElementById('stock').value;
@@ -169,21 +175,34 @@
             return;
         }
 
-        push(menuRef, {
+        const menuData = {
             name: name,
             price: parseInt(price),
             stock: parseInt(stock),
             category: category,
             desc: desc,
-            supportsAddons: supportsAddons,
-            isSoldOut: false
-        }).then(() => {
-            alert("✅ Menu Berhasil Ditambahkan!");
-            window.resetForm(); // Panggil fungsi reset
-        }).catch((error) => {
-            console.error(error);
-            alert("Gagal menyimpan: " + error.message);
-        });
+            supportsAddons: supportsAddons
+        };
+
+        if (id) {
+            // --- SKENARIO 1: UPDATE (JIKA ID ADA) ---
+            // Kita pakai 'update', bukan 'push'
+            update(ref(db, 'menu/' + id), menuData)
+            .then(() => {
+                alert("✅ Stok/Data Berhasil Diupdate!");
+                resetForm(); // Bersihkan form
+            })
+            .catch((error) => alert("Gagal update: " + error.message));
+        } else {
+            // --- SKENARIO 2: BARU (JIKA ID KOSONG) ---
+            menuData.isSoldOut = false; // Default status
+            push(menuRef, menuData)
+            .then(() => {
+                alert("✅ Menu Baru Ditambahkan!");
+                resetForm();
+            })
+            .catch((error) => alert("Gagal simpan: " + error.message));
+        }
     }
 
     // --- 5. FUNGSI RESET FORM ---
@@ -206,6 +225,30 @@
     window.toggleSoldOut = function(id, currentStatus) {
         update(ref(db, 'menu/' + id), {
             isSoldOut: !currentStatus
+        });
+    }
+    // --- FUNGSI BARU: EDIT MENU ---
+    window.editMenu = function(id) {
+        // Ambil data dari database berdasarkan ID
+        const itemRef = ref(db, 'menu/' + id);
+        onValue(itemRef, (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                // Isi formulir dengan data yang mau diedit
+                document.getElementById('menu-id').value = id; // Isi ID rahasia
+                document.getElementById('name').value = data.name;
+                document.getElementById('price').value = data.price;
+                document.getElementById('stock').value = data.stock;
+                document.getElementById('category').value = data.category;
+                document.getElementById('desc').value = data.desc || '';
+                document.getElementById('supportsAddons').value = data.supportsAddons.toString();
+                
+                // Ubah judul form biar jelas
+                document.getElementById('form-title').innerText = "Edit Menu: " + data.name;
+                window.scrollTo(0,0); // Scroll ke atas
+            }
+        }, {
+            onlyOnce: true // Ambil sekali saja
         });
     }
 </script>
