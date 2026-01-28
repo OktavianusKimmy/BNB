@@ -668,7 +668,7 @@
         import { getDatabase, ref, onValue, push, set, runTransaction, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         // --- 1. IMPORT FIREBASE (JANGAN DIUBAH) ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         // --- 2. CONFIG FIREBASE (WAJIB DIGANTI DENGAN PUNYAMU) ---
         // Ambil ini dari Firebase Console -> Project Settings -> General -> Your Apps
         const firebaseConfig = {
@@ -685,6 +685,7 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        const auth = getAuth(app);
 
         // --- LOGIKA DINAMIS PRE-ORDER (MENGGANTIKAN HARDCODED TIMER) ---
         
@@ -1246,42 +1247,40 @@
         
         // --- 7. ADMIN LOGIN (SECURE VIA VERCEL API) ---
         
-        // Pasang event listener ke tombol icon saat script jalan
         const adminBtn = document.getElementById('admin-trigger-btn');
         if(adminBtn) {
             adminBtn.addEventListener('click', handleAdminLogin);
         }
 
         async function handleAdminLogin() {
+            // Kita tentukan email admin-nya di sini (hardcode saja biar praktis)
+            // Pastikan email ini SAMA dengan yang kamu daftarkan di Firebase Console tadi
+            const adminEmail = "admin@toko.com"; 
+
             // 1. Minta Password
-            const passwordInput = prompt("🔒 Masukkan Password Admin:");
+            const passwordInput = prompt("🔒 Masukkan Password Admin (Firebase):");
             if (!passwordInput) return;
 
             document.body.style.cursor = 'wait';
 
             try {
-                // 2. Tanya ke Server (API Vercel)
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ passwordInput: passwordInput })
-                });
+                // 2. Login langsung ke Firebase (Bukan ke Vercel API lagi)
+                await signInWithEmailAndPassword(auth, adminEmail, passwordInput);
+                
+                // 3. Kalau sukses, simpan sesi lokal (opsional, untuk kompatibilitas)
+                sessionStorage.setItem('isAdmin', 'true'); 
+                
+                alert("✅ Login Berhasil! Mengalihkan...");
+                window.location.href = 'admin.html';
 
-                const result = await response.json();
-
-                // 3. Cek Jawaban Server
-                if (result.allowed === true) {
-                    // --- [PENTING] INI YANG BIASANYA KETINGGALAN ---
-                    // Kita cetak "Tiket" bernama 'isAdmin' isinya 'true'
-                    sessionStorage.setItem('isAdmin', 'true'); 
-                    // ------------------------------------------------
-                    window.location.href = 'admin.html'; 
-                } else {
-                    alert("❌ Password Salah!");
-                }
             } catch (error) {
                 console.error(error);
-                alert("⚠️ Gagal menghubungi server.");
+                // Error handling sederhana
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                    alert("❌ Password Salah!");
+                } else {
+                    alert("⚠️ Error: " + error.message);
+                }
             } finally {
                 document.body.style.cursor = 'default';
             }
