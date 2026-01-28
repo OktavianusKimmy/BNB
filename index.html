@@ -828,7 +828,7 @@
         onValue(menuRef, (snapshot) => {
             const data = snapshot.val();
             
-            // Reset MENU_DATA setiap kali ada perubahan di database
+            // Reset MENU_DATA
             window.MENU_DATA = [
                 { category: "DRINKS", items: [] },
                 { category: "TREATS", items: [] }
@@ -837,16 +837,19 @@
             if (data) {
                 Object.keys(data).forEach(key => {
                     const item = data[key];
-                    // Format item agar sesuai dengan kode lama
+                    
+                    // --- DISINI PERBAIKANNYA ---
+                    // Kita harus memasukkan 'image' ke dalam daftar ini
                     const formattedItem = {
                         id: key, 
                         name: item.name,
                         price: item.price,
                         desc: item.desc,
+                        
+                        image: item.image, // <--- JANGAN LUPA BARIS INI!
+                        
                         supportsAddons: item.supportsAddons,
-                        // Ambil stok, kalau tidak ada anggap 0
                         stock: item.stock !== undefined ? item.stock : 0, 
-                        // Item dianggap sold out jika dicentang manual ATAU stoknya 0/kurang
                         isSoldOut: item.isSoldOut || (item.stock !== undefined && item.stock <= 0)
                     };
 
@@ -858,7 +861,7 @@
                 });
             }
 
-            // Setelah data siap, render ulang tampilan
+            // Render ulang tampilan
             window.renderMenu();
         });
 
