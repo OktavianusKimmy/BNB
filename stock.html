@@ -78,18 +78,11 @@
 </div>
 
 <script type="module">
-    // --- 0. SATPAM (SECURITY CHECK) ---
-    // Tambahkan ini biar orang gak bisa langsung nembak link stock.html tanpa login
-    if (sessionStorage.getItem('isAdmin') !== 'true') {
-        alert("⚠️ Akses Ditolak! Login dulu.");
-        window.location.href = 'index.html';
-    }
-
+    // 1. IMPORT FIREBASE LENGKAP (DATABASE + AUTH)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, remove, onValue, update } 
-    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // --- PASTE CONFIG FIREBASE KAMU DISINI (YANG LAMA TETAP DIPAKAI) ---
     const firebaseConfig = {
         apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
         authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
@@ -103,98 +96,110 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app); // Inisialisasi Auth
 
-    // --- LOGIKA APLIKASI (MASIH SAMA PERSIS KODEMU) ---
-    const menuListEl = document.getElementById('menu-list');
+    // --- 2. CEK APAKAH USER LOGIN? (SECURITY CHECK) ---
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Aman, user adalah admin. Load data menu.
+            loadMenuData();
+        } else {
+            // Tidak dikenal, tendang ke login
+            alert("⚠️ Anda harus login dulu!");
+            window.location.href = 'index.html';
+        }
+    });
+
+    // --- 3. LOGIKA CRUD MENU (SEPERTI BIASA) ---
     const menuRef = ref(db, 'menu');
+    const menuList = document.getElementById('menu-list');
 
-    onValue(menuRef, (snapshot) => {
-        menuListEl.innerHTML = "";
-        const data = snapshot.val();
-        
-        if (!data) {
-            menuListEl.innerHTML = "<p>Belum ada menu.</p>";
+    function loadMenuData() {
+        onValue(menuRef, (snapshot) => {
+            menuList.innerHTML = '<p class="text-gray-400">Memuat data...</p>';
+            const data = snapshot.val();
+            
+            if (!data) {
+                menuList.innerHTML = '<p class="text-gray-400">Belum ada menu.</p>';
+                return;
+            }
+
+            menuList.innerHTML = '';
+            Object.keys(data).forEach(key => {
+                const item = data[key];
+                const soldOutClass = item.isSoldOut ? 'opacity-50 grayscale' : '';
+                const statusText = item.isSoldOut ? '<span class="text-red-500 font-bold">(HABIS)</span>' : '<span class="text-green-400 font-bold">(ADA)</span>';
+
+                const row = `
+                    <div class="bg-gray-800 p-4 rounded-lg flex justify-between items-center mb-2 ${soldOutClass}">
+                        <div>
+                            <h4 class="font-bold text-lg text-purple-300">${item.name} ${statusText}</h4>
+                            <p class="text-sm text-gray-400">${item.category} | Stok: ${item.stock}</p>
+                            <p class="text-sm font-bold">Rp ${parseInt(item.price).toLocaleString('id-ID')}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="toggleSoldOut('${key}', ${item.isSoldOut})" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700">
+                                ${item.isSoldOut ? 'Set Ada' : 'Set Habis'}
+                            </button>
+                            <button onclick="deleteMenu('${key}')" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700">
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                `;
+                menuList.innerHTML += row;
+            });
+        });
+    }
+
+    // --- FUNGSI TAMBAH MENU ---
+    // Tempel ke window agar bisa dipanggil tombol HTML
+    window.saveMenu = function() {
+        const name = document.getElementById('menu-name').value;
+        const price = document.getElementById('menu-price').value;
+        const stock = document.getElementById('menu-stock').value;
+        const category = document.getElementById('menu-category').value;
+        const desc = document.getElementById('menu-desc').value;
+        const supportsAddons = document.getElementById('menu-addons').value === 'true';
+
+        if (!name || !price || !stock) {
+            alert("Mohon lengkapi Nama, Harga, dan Stok!");
             return;
         }
 
-        Object.keys(data).forEach(key => {
-            const item = data[key];
-            const isOutOfStock = item.stock <= 0;
-            const stockClass = isOutOfStock ? 'out-of-stock' : 'stock-info';
-            const stockText = isOutOfStock ? 'STOK HABIS' : `Sisa Stok: ${item.stock}`;
-            const cardStyle = isOutOfStock ? 'opacity: 0.6; border-color: #555;' : '';
-
-            const div = document.createElement('div');
-            div.className = `menu-item-card`;
-            div.style = cardStyle;
-            div.innerHTML = `
-                <div class="menu-info">
-                    <h3>${item.name} (${item.category})</h3>
-                    <div>Rp ${item.price}</div>
-                    <div class="${stockClass}">${stockText}</div>
-                </div>
-                <div class="actions">
-                    <button class="btn-edit" onclick="editItem('${key}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteItem('${key}')">Hapus</button>
-                </div>
-            `;
-            menuListEl.appendChild(div);
+        // PUSH KE FIREBASE (Sekarang aman karena sudah Auth)
+        push(menuRef, {
+            name: name,
+            price: parseInt(price),
+            stock: parseInt(stock),
+            category: category,
+            desc: desc,
+            supportsAddons: supportsAddons,
+            isSoldOut: false
+        }).then(() => {
+            alert("✅ Menu Berhasil Ditambahkan!");
+            // Reset Form
+            document.getElementById('menu-name').value = '';
+            document.getElementById('menu-price').value = '';
+            document.getElementById('menu-stock').value = '10';
+            document.getElementById('menu-desc').value = '';
+        }).catch((error) => {
+            console.error(error);
+            alert("Gagal menyimpan: " + error.message);
         });
-    });
+    }
 
-    window.saveMenu = function() {
-        const id = document.getElementById('menu-id').value;
-        const name = document.getElementById('name').value;
-        const price = parseInt(document.getElementById('price').value);
-        const stock = parseInt(document.getElementById('stock').value); 
-        const category = document.getElementById('category').value;
-        const desc = document.getElementById('desc').value;
-        const supportsAddons = document.getElementById('supportsAddons').value === "true";
-
-        if(!name || !price || isNaN(stock)) return alert("Nama, Harga, dan Stok wajib diisi!");
-
-        const itemData = { name, price, stock, category, desc, supportsAddons };
-        
-        if(id) {
-            update(ref(db, 'menu/' + id), itemData)
-                .then(() => { alert("Menu diupdate!"); resetForm(); })
-                .catch(e => alert(e.message));
-        } else {
-            push(menuRef, itemData)
-                .then(() => { alert("Menu ditambah!"); resetForm(); })
-                .catch(e => alert(e.message));
+    // --- FUNGSI DELETE & UPDATE STATUS ---
+    window.deleteMenu = function(id) {
+        if(confirm("Hapus menu ini permanen?")) {
+            remove(ref(db, 'menu/' + id));
         }
     }
 
-    window.deleteItem = function(key) {
-        if(confirm("Yakin hapus menu ini?")) {
-            remove(ref(db, 'menu/' + key));
-        }
-    }
-
-    window.editItem = function(key) {
-        onValue(ref(db, 'menu/' + key), (snapshot) => {
-            const data = snapshot.val();
-            document.getElementById('menu-id').value = key;
-            document.getElementById('name').value = data.name;
-            document.getElementById('price').value = data.price;
-            document.getElementById('stock').value = data.stock;
-            document.getElementById('category').value = data.category;
-            document.getElementById('desc').value = data.desc || "";
-            document.getElementById('supportsAddons').value = data.supportsAddons ? "true" : "false";
-            
-            document.getElementById('form-title').innerText = "Edit Menu: " + data.name;
-            window.scrollTo(0,0);
-        }, { onlyOnce: true });
-    }
-
-    window.resetForm = function() {
-        document.getElementById('menu-id').value = "";
-        document.getElementById('name').value = "";
-        document.getElementById('price').value = "";
-        document.getElementById('stock').value = "10";
-        document.getElementById('desc').value = "";
-        document.getElementById('form-title').innerText = "Tambah Menu Baru";
+    window.toggleSoldOut = function(id, currentStatus) {
+        update(ref(db, 'menu/' + id), {
+            isSoldOut: !currentStatus
+        });
     }
 </script>
 </body>
