@@ -27,7 +27,11 @@
             font-size: 1.1rem;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             transition: transform 0.2s;
+            animation: fadeIn 0.5s ease forwards;
+            opacity: 0;
         }
+        @keyframes fadeIn { to { opacity: 1; } }
+        
         .rank-item:hover { transform: scale(1.02); }
         /* Juara 1, 2, 3 beda warna */
         .rank-1 { background: linear-gradient(45deg, #FFD700, #FFA500); color: #19194d; font-weight: bold; border: none; }
@@ -53,49 +57,106 @@
         <h1>LEADERBOARD</h1>
         <p>Kelas mana yang paling banyak jajan?</p>
 
-        <div id="loading">⏳ Sedang menghitung kekayaan...</div>
+        <div id="loading">⏳ Menghitung data realtime...</div>
         <div id="leaderboard-container" class="leaderboard-list"></div>
 
-        <a href="/" class="btn-back">← Kembali ke Menu</a>
+        <a href="index.html" class="btn-back">← Kembali ke Menu</a>
     </div>
 
-    <script>
-        async function loadLeaderboard() {
-            try {
-                const response = await fetch('/api/get-leaderboard');
-                const data = await response.json();
-                
-                const container = document.getElementById('leaderboard-container');
-                document.getElementById('loading').style.display = 'none';
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-                if (data.length === 0) {
-                    container.innerHTML = '<p>Belum ada data transaksi.</p>';
-                    return;
-                }
+        // --- KONFIGURASI FIREBASE (PASTIKAN SAMA DENGAN FILE LAIN) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
+            authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
+            databaseURL: "https://brew-and-beats-5fbf2-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "brew-and-beats-5fbf2",
+            storageBucket: "brew-and-beats-5fbf2.firebasestorage.app",
+            messagingSenderId: "243138026852",
+            appId: "1:243138026852:web:73d5e7cdb446949033ee71",
+            measurementId: "G-S3ZX1F1FTP"
+        };
 
-                data.forEach((item, index) => {
-                    const rank = index + 1;
-                    let rankClass = '';
-                    if (rank === 1) rankClass = 'rank-1';
-                    else if (rank === 2) rankClass = 'rank-2';
-                    else if (rank === 3) rankClass = 'rank-3';
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        // --- LOGIKA HITUNG LEADERBOARD ---
+        const ordersRef = ref(db, 'orders');
+        const container = document.getElementById('leaderboard-container');
+        const loading = document.getElementById('loading');
 
-                    container.innerHTML += `
-                        <div class="rank-item ${rankClass}">
-                            <div class="rank-num">#${rank}</div>
-                            <div class="class-name">${item.kelas}</div>
-                            <div class="total-spent">Rp ${item.total.toLocaleString('id-ID')}</div>
-                        </div>
-                    `;
-                });
-
-            } catch (error) {
-                document.getElementById('loading').innerText = 'Gagal memuat data.';
-                console.error(error);
+        // onValue akan berjalan setiap kali ada data baru di database (Realtime)
+        onValue(ordersRef, (snapshot) => {
+            const data = snapshot.val();
+            
+            if (!data) {
+                loading.style.display = 'none';
+                container.innerHTML = '<p>Belum ada transaksi sama sekali.</p>';
+                return;
             }
-        }
 
-        loadLeaderboard();
+            // 1. KUMPULKAN DATA & HITUNG TOTAL PER KELAS
+            const classTotals = {}; // Object untuk menampung { "PPTI 20": 50000, "DPP": 20000 }
+
+            Object.values(data).forEach(order => {
+                // Pastikan order punya kelas & total
+                if (order.class && order.total) {
+                    const className = order.class;
+                    
+                    // Bersihkan string "Rp 15.000" menjadi angka 15000
+                    const priceNumber = parseInt(order.total.replace(/[^0-9]/g, '')) || 0;
+
+                    // Jumlahkan ke kelas yang sesuai
+                    if (classTotals[className]) {
+                        classTotals[className] += priceNumber;
+                    } else {
+                        classTotals[className] = priceNumber;
+                    }
+                }
+            });
+
+            // 2. UBAH KE ARRAY & URUTKAN (SORTING)
+            // Ubah object menjadi array: [{kelas: "PPTI 20", total: 50000}, ...]
+            const leaderboardArray = Object.keys(classTotals).map(key => {
+                return {
+                    kelas: key,
+                    total: classTotals[key]
+                };
+            });
+
+            // Urutkan dari Terbesar ke Terkecil
+            leaderboardArray.sort((a, b) => b.total - a.total);
+
+            // 3. TAMPILKAN KE HTML
+            renderLeaderboard(leaderboardArray);
+        });
+
+        function renderLeaderboard(data) {
+            loading.style.display = 'none';
+            container.innerHTML = ''; // Bersihkan kontainer lama
+
+            data.forEach((item, index) => {
+                const rank = index + 1;
+                
+                // Tentukan style khusus untuk Top 3
+                let rankClass = '';
+                if (rank === 1) rankClass = 'rank-1';
+                else if (rank === 2) rankClass = 'rank-2';
+                else if (rank === 3) rankClass = 'rank-3';
+
+                // Buat HTML
+                const row = `
+                    <div class="rank-item ${rankClass}" style="animation-delay: ${index * 0.1}s">
+                        <div class="rank-num">#${rank}</div>
+                        <div class="class-name">${item.kelas}</div>
+                        <div class="total-spent">Rp ${item.total.toLocaleString('id-ID')}</div>
+                    </div>
+                `;
+                container.innerHTML += row;
+            });
+        }
     </script>
 </body>
 </html>
