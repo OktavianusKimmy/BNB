@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Brew & Beats - Baksos X RTB Anniversary</title>
+    <title>Brew & Beats - Baksos X RTB Anniv</title>
     <link href="https://fonts.googleapis.com/css2?family=Limelight&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         /* Style untuk item yang Sold Out */
@@ -527,6 +527,27 @@
         @media (max-width: 600px) {
             .closed-title { font-size: 2rem; }
         }
+
+        /* Style Gambar Menu */
+        .menu-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+            object-fit: cover; /* Biar gambar gak gepeng */
+            margin-right: 15px;
+            border: 2px solid var(--accent-color);
+        }
+
+        /* Placeholder kalau gak ada gambar */
+        .menu-placeholder {
+            width: 70px;
+            height: 70px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            margin-right: 15px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -890,8 +911,21 @@
                          action = item.supportsAddons ? `openCustomModal('${item.id}')` : `directAddToCart('${item.id}')`;
                     }
 
+                    // Cek Gambar
+                    let imgHtml = "";
+                    if (item.image && item.image.trim() !== "") {
+                        imgHtml = `<img src="${item.image}" alt="${item.name}" class="menu-img" onerror="this.style.display='none'">`;
+                    } else {
+                        // Kalau gak ada gambar, pakai icon sesuai kategori
+                        let icon = item.category === 'DRINKS' ? '🥤' : '🍪';
+                        imgHtml = `<div class="menu-placeholder">${icon}</div>`;
+                    }
+
+                    // Render Row HTML
                     gridEl.innerHTML += `
                         <div class="${itemClass}">
+                            ${imgHtml}
+
                             <div class="item-info">
                                 <div class="item-name">${nameLabel}</div>
                                 ${item.desc ? `<div class="item-desc">${item.desc}</div>` : ''}

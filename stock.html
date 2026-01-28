@@ -46,6 +46,11 @@
             <input type="number" id="price" placeholder="Contoh: 15000">
         </div>
         <div class="form-group">
+            <label>Link Gambar (URL)</label>
+            <input type="text" id="image" placeholder="Paste link gambar disini (https://...)">
+            <small style="color: #aaa; font-size: 0.8rem;">*Upload gambar ke postimages.org atau imgur.com, lalu copy "Direct Link"-nya.</small>
+        </div>
+        <div class="form-group">
             <label>Stok Awal</label>
             <input type="number" id="stock" placeholder="Contoh: 50" value="10">
         </div>
@@ -78,11 +83,11 @@
 </div>
 
 <script type="module">
-    // 1. IMPORT FIREBASE LENGKAP
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+    // ... (Config Firebase Tetap Sama, Jangan Dihapus) ...
     const firebaseConfig = {
         apiKey: "AIzaSyCU82AX-l80wXvxb_S4eToRQ0cRt8RXZa4",
         authDomain: "brew-and-beats-5fbf2.firebaseapp.com",
@@ -98,20 +103,15 @@
     const db = getDatabase(app);
     const auth = getAuth(app); 
 
-    // --- 2. CEK LOGIN (SECURITY) ---
     onAuthStateChanged(auth, (user) => {
-        if (user) {
-            loadMenuData();
-        } else {
-            alert("⚠️ Anda harus login dulu!");
-            window.location.href = 'index.html';
-        }
+        if (user) { loadMenuData(); } 
+        else { window.location.href = 'index.html'; }
     });
 
-    // --- 3. LOAD MENU ---
     const menuRef = ref(db, 'menu');
     const menuList = document.getElementById('menu-list');
 
+    // 1. UPDATE FUNGSI LOAD DATA (Supaya gambar muncul di list admin)
     function loadMenuData() {
         onValue(menuRef, (snapshot) => {
             menuList.innerHTML = '<p class="text-gray-400">Memuat data...</p>';
@@ -127,47 +127,64 @@
                 const item = data[key];
                 const soldOutClass = item.isSoldOut ? 'opacity-50 grayscale' : '';
                 const statusText = item.isSoldOut ? '<span style="color:#ff4d4d; font-weight:bold;">(HABIS)</span>' : '<span style="color:#4ade80; font-weight:bold;">(ADA)</span>';
-                
-                // Format Rupiah
                 const priceFormatted = parseInt(item.price).toLocaleString('id-ID');
 
-                // Gunakan class sesuai CSS di <head> tadi (menu-item-card) agar rapi
+                // Cek ada gambar atau tidak
+                const imgHTML = item.image ? 
+                    `<img src="${item.image}" style="width:60px; height:60px; object-fit:cover; border-radius:8px; margin-right:15px; border: 1px solid #555;">` 
+                    : `<div style="width:60px; height:60px; background:#333; border-radius:8px; margin-right:15px; display:flex; align-items:center; justify-content:center; font-size:20px;">☕</div>`;
+
                 const row = `
-                        <div class="menu-item-card ${soldOutClass}" style="margin-bottom:10px;">
-                            <div class="menu-info">
-                                <h3>${item.name} ${statusText}</h3>
-                                <div style="font-size:0.85rem; opacity:0.8;">${item.category} | Stok: ${item.stock}</div>
-                                <div style="font-weight:bold; margin-top:5px;">Rp ${priceFormatted}</div>
-                            </div>
-                            <div class="actions">
-                                <button onclick="editMenu('${key}')" style="background-color: #3b82f6; color: white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; margin-right:5px;">
-                                    Edit
-                                </button>
-                                
-                                <button onclick="toggleSoldOut('${key}', ${item.isSoldOut})" style="background-color: ${item.isSoldOut ? '#4ade80' : '#FFC107'}; color: #000; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">
-                                    ${item.isSoldOut ? 'Set Ada' : 'Set Habis'}
-                                </button>
-                                <button onclick="deleteMenu('${key}')" class="btn-delete" style="padding:5px 10px; border-radius:5px; border:none; cursor:pointer; background-color: #ef4444; color: white;">
-                                    Hapus
-                                </button>
-                            </div>
+                    <div class="menu-item-card ${soldOutClass}" style="margin-bottom:10px; display:flex; align-items:center;">
+                        ${imgHTML}
+                        
+                        <div class="menu-info" style="flex-grow:1;">
+                            <h3>${item.name} ${statusText}</h3>
+                            <div style="font-size:0.85rem; opacity:0.8;">${item.category} | Stok: ${item.stock}</div>
+                            <div style="font-weight:bold; margin-top:5px;">Rp ${priceFormatted}</div>
                         </div>
-                    `;
+                        <div class="actions">
+                            <button onclick="editMenu('${key}')" style="background-color: #3b82f6; color: white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; margin-right:5px;">Edit</button>
+                            <button onclick="toggleSoldOut('${key}', ${item.isSoldOut})" style="background-color: ${item.isSoldOut ? '#4ade80' : '#FFC107'}; color: #000; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">${item.isSoldOut ? 'Set Ada' : 'Set Habis'}</button>
+                            <button onclick="deleteMenu('${key}')" class="btn-delete" style="padding:5px 10px; border-radius:5px; border:none; cursor:pointer; background-color: #ef4444; color: white;">Hapus</button>
+                        </div>
+                    </div>
+                `;
                 menuList.innerHTML += row;
             });
         });
     }
 
-    // --- 4. FUNGSI SIMPAN MENU (SUDAH DIPERBAIKI ID-NYA) ---
+    // 2. UPDATE FUNGSI EDIT (Supaya link gambar naik ke form saat diedit)
+    window.editMenu = function(id) {
+        const itemRef = ref(db, 'menu/' + id);
+        onValue(itemRef, (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('menu-id').value = id;
+                document.getElementById('name').value = data.name;
+                document.getElementById('price').value = data.price;
+                document.getElementById('stock').value = data.stock;
+                document.getElementById('category').value = data.category;
+                document.getElementById('desc').value = data.desc || '';
+                document.getElementById('image').value = data.image || ''; // <--- Load Link Gambar
+                document.getElementById('supportsAddons').value = data.supportsAddons.toString();
+                
+                document.getElementById('form-title').innerText = "Edit Menu: " + data.name;
+                window.scrollTo(0,0);
+            }
+        }, { onlyOnce: true });
+    }
+
+    // 3. UPDATE FUNGSI SAVE (Supaya link gambar tersimpan ke database)
     window.saveMenu = function() {
-        // Ambil ID Rahasia
         const id = document.getElementById('menu-id').value;
-        
         const name = document.getElementById('name').value;
         const price = document.getElementById('price').value;
         const stock = document.getElementById('stock').value;
         const category = document.getElementById('category').value;
         const desc = document.getElementById('desc').value;
+        const image = document.getElementById('image').value; // <--- Ambil Link Gambar
         const supportsAddons = document.getElementById('supportsAddons').value === 'true';
 
         if (!name || !price || !stock) {
@@ -181,75 +198,37 @@
             stock: parseInt(stock),
             category: category,
             desc: desc,
+            image: image, // <--- Simpan Link Gambar
             supportsAddons: supportsAddons
         };
 
         if (id) {
-            // --- SKENARIO 1: UPDATE (JIKA ID ADA) ---
-            // Kita pakai 'update', bukan 'push'
             update(ref(db, 'menu/' + id), menuData)
-            .then(() => {
-                alert("✅ Stok/Data Berhasil Diupdate!");
-                resetForm(); // Bersihkan form
-            })
-            .catch((error) => alert("Gagal update: " + error.message));
+            .then(() => { alert("✅ Berhasil Diupdate!"); resetForm(); })
+            .catch((e) => alert("Error: " + e.message));
         } else {
-            // --- SKENARIO 2: BARU (JIKA ID KOSONG) ---
-            menuData.isSoldOut = false; // Default status
+            menuData.isSoldOut = false;
             push(menuRef, menuData)
-            .then(() => {
-                alert("✅ Menu Baru Ditambahkan!");
-                resetForm();
-            })
-            .catch((error) => alert("Gagal simpan: " + error.message));
+            .then(() => { alert("✅ Menu Baru Ditambahkan!"); resetForm(); })
+            .catch((e) => alert("Error: " + e.message));
         }
     }
 
-    // --- 5. FUNGSI RESET FORM ---
     window.resetForm = function() {
         document.getElementById('name').value = '';
         document.getElementById('price').value = '';
         document.getElementById('stock').value = '10';
         document.getElementById('desc').value = '';
+        document.getElementById('image').value = ''; // <--- Reset Link Gambar
         document.getElementById('menu-id').value = ''; 
         document.getElementById('form-title').innerText = 'Tambah Menu Baru';
     }
 
-    // --- 6. FUNGSI ACTION LAINNYA ---
     window.deleteMenu = function(id) {
-        if(confirm("Hapus menu ini permanen?")) {
-            remove(ref(db, 'menu/' + id));
-        }
+        if(confirm("Hapus menu ini permanen?")) { remove(ref(db, 'menu/' + id)); }
     }
-
     window.toggleSoldOut = function(id, currentStatus) {
-        update(ref(db, 'menu/' + id), {
-            isSoldOut: !currentStatus
-        });
-    }
-    // --- FUNGSI BARU: EDIT MENU ---
-    window.editMenu = function(id) {
-        // Ambil data dari database berdasarkan ID
-        const itemRef = ref(db, 'menu/' + id);
-        onValue(itemRef, (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                // Isi formulir dengan data yang mau diedit
-                document.getElementById('menu-id').value = id; // Isi ID rahasia
-                document.getElementById('name').value = data.name;
-                document.getElementById('price').value = data.price;
-                document.getElementById('stock').value = data.stock;
-                document.getElementById('category').value = data.category;
-                document.getElementById('desc').value = data.desc || '';
-                document.getElementById('supportsAddons').value = data.supportsAddons.toString();
-                
-                // Ubah judul form biar jelas
-                document.getElementById('form-title').innerText = "Edit Menu: " + data.name;
-                window.scrollTo(0,0); // Scroll ke atas
-            }
-        }, {
-            onlyOnce: true // Ambil sekali saja
-        });
+        update(ref(db, 'menu/' + id), { isSoldOut: !currentStatus });
     }
 </script>
 </body>
