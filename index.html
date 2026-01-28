@@ -577,7 +577,7 @@
     <div class="container">
         <header onclick="window.location.href='leaderboard.html'">
             <h1>Brew & Beats</h1>
-            <h2>SYMPHONY OF TALENT</h2>
+            <h2>Baksos X RTB Anniversary</h2>
         </header>
         <main id="menu-container"></main>
         <footer>Pre-order: Nov 12-19, 2025</footer>
@@ -914,9 +914,10 @@
                     // Cek Gambar
                     let imgHtml = "";
                     if (item.image && item.image.trim() !== "") {
+                        // KODE INI YANG MENAMPILKAN GAMBAR
                         imgHtml = `<img src="${item.image}" alt="${item.name}" class="menu-img" onerror="this.style.display='none'">`;
                     } else {
-                        // Kalau gak ada gambar, pakai icon sesuai kategori
+                        // KODE INI YANG MENAMPILKAN ICON KUE/GELAS (Placeholder)
                         let icon = item.category === 'DRINKS' ? '🥤' : '🍪';
                         imgHtml = `<div class="menu-placeholder">${icon}</div>`;
                     }
