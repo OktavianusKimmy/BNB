@@ -1265,6 +1265,27 @@
                     timestamp: Date.now()
                 });
 
+                const scriptURL = "/api/save-order";
+
+                // Siapkan data simpel untuk Sheets
+                const dataForSheet = {
+                    orderId: orderId,
+                    customer: name,
+                    class: cls,
+                    phone: phone,
+                    items: itemsReport,
+                    total: document.getElementById('payment-total').innerText
+                };
+
+                // Kirim tanpa menunggu (no-cors mode agar browser tidak blokir)
+                fetch(scriptURL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Penting agar tidak error CORS
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataForSheet)
+                }).then(() => console.log("Data terkirim ke Sheets"))
+                  .catch(err => console.error("Gagal kirim ke Sheets", err));
+
                 window.toggleModal('payment-modal');
                 alert(`✅ PESANAN BERHASIL!\nOrder ID: ${orderId}\nPesanan sudah diamankan untukmu!.`);
                 
