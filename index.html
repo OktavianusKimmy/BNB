@@ -1280,7 +1280,6 @@
                 // Kirim tanpa menunggu (no-cors mode agar browser tidak blokir)
                 fetch(scriptURL, {
                     method: 'POST',
-                    mode: 'no-cors', // Penting agar tidak error CORS
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dataForSheet)
                 }).then(() => console.log("Data terkirim ke Sheets"))
