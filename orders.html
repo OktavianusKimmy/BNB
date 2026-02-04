@@ -179,7 +179,6 @@
                 const custName = order.customer || "";
                 const custItems = order.items || "";
                 const custPhone = order.phone || "";
-                custPhone = custPhone.replace('/^0/', '62');
                 
                 const searchString = (custName + " " + custItems + " " + custPhone).toLowerCase();
                 const searchMatch = searchString.includes(searchValue);
