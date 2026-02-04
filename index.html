@@ -1288,7 +1288,15 @@
                 calculatedTotal += safeUniqueCode;
                 
                 // Sanity Check (Total gak boleh minus/nol)
-                if(calculatedTotal <= 0) calculatedTotal = 0;
+                if (calculatedTotal <= 0) {
+                    alert("⚠️ Transaksi Gagal: Total Rp 0 atau tidak valid. \nJangan iseng ya! 😉");
+                    
+                    // Kembalikan tombol seperti semula
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    
+                    return; // STOP DI SINI! JANGAN LANJUT SIMPAN KE DATABASE
+                }
 
                 // Format jadi Rupiah (Ini variabel yang tadinya error 'undefined')
                 const totalFixed = 'Rp ' + calculatedTotal.toLocaleString('id-ID');
