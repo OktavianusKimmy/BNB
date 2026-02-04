@@ -1198,6 +1198,7 @@
         }
 
         // --- GANTI FUNGSI confirmOrderAutomatic DENGAN INI ---
+        // --- GANTI FUNGSI confirmOrderAutomatic DENGAN INI (VERSI FIX & AMAN) ---
         window.confirmOrderAutomatic = async function() {
             const name = document.getElementById('cust-name').value.trim();
             const phone = document.getElementById('cust-phone').value.trim();
@@ -1210,7 +1211,7 @@
             btn.innerHTML = '⏳ Memproses Stok...';
             btn.disabled = true;
 
-            // --- LOGIKA POTONG STOK ---
+            // --- 1. LOGIKA POTONG STOK ---
             const updates = window.cart.map(item => {
                 const itemRef = ref(db, 'menu/' + item.productId + '/stock');
                 return runTransaction(itemRef, (currentStock) => {
@@ -1236,96 +1237,86 @@
                     btn.innerHTML = "📢 LAPOR ADMIN (REFUND/GANTI)";
                     btn.disabled = false;
                     
-                    // Buat pesan WhatsApp otomatis
-                    // 1. Validasi Kode Unik (Pastikan dalam range wajar)
-                    // Misalnya kode unik harus antara 10 - 99. Kalau diluar itu, berarti dihack.
-                    let safeUniqueCode = window.lastUniqueCode;
-                    if (safeUniqueCode < 1 || safeUniqueCode > 999) {
-                        console.warn("⚠️ Kode unik mencurigakan! Reset ke 0.");
-                        safeUniqueCode = 0; // Atau generate ulang
-                    }
-
-                    // 2. Hitung Total dengan RE-VERIFIKASI HARGA
-                    let calculatedTotal = window.cart.reduce((sum, cartItem) => {
-                        // A. Cari item aslinya di MENU_DATA (Database Lokal)
-                        // Kita anggap MENU_DATA adalah sumber kebenaran (Source of Truth)
-                        let originalItem = null;
-                        
-                        // Loop cari item di database lokal
-                        window.MENU_DATA.forEach(category => {
-                            const found = category.items.find(i => i.id === cartItem.productId);
-                            if (found) originalItem = found;
-                        });
-
-                        if (originalItem) {
-                            // B. Hitung harga Add-ons ulang (Jangan percaya cartItem.addOns harga)
-                            let addonsTotal = 0;
-                            cartItem.addOns.forEach(userAddon => {
-                                // Cek harga addon asli dari daftar ADD_ONS_DATA
-                                const asliAddon = window.ADD_ONS_DATA.find(ao => ao.id === userAddon.id);
-                                if (asliAddon) addonsTotal += asliAddon.price;
-                            });
-
-                            // C. Pakai HARGA ASLI dari database, abaikan harga di cartItem
-                            const realPrice = originalItem.price + addonsTotal;
-                            return sum + (realPrice * cartItem.qty);
-                            
-                        } else {
-                            return sum; // Item tidak ditemukan (mungkin dihapus admin), skip
-                        }
-                    }, 0);
-
-                    calculatedTotal += safeUniqueCode;
-
-                    // 4. Cek Batas Wajar (Sanity Check)
-                    if (calculatedTotal < 0) {
-                        alert("❌ Error: Total minus?");
-                        return;
-                    }
-
-                    // 5. Format & Simpan
-                    const totalFixed = 'Rp ' + calculatedTotal.toLocaleString('id-ID');
-
+                    // Hitung total manual buat laporan WA (karena gagal save)
+                    const totalBayarLaporan = document.getElementById('payment-total').innerText;
                     const detailOrder = window.cart.map(i => `${i.name} (${i.qty}x)`).join(', ');
-                    const pesanWA = `Halo, saya *${name}* (${cls}).%0a%0aSaya sudah transfer *${totalBayar}* via QRIS.%0aTapi saat konfirmasi di web, sistem bilang *STOK HABIS*.%0a%0aDetail Pesanan:%0a${detailOrder}%0a%0aMohon dicek bukti transfer saya (saya lampirkan foto).`;
+                    const pesanWA = `Halo, saya *${name}* (${cls}).%0a%0aSaya sudah transfer *${totalBayarLaporan}* via QRIS.%0aTapi saat konfirmasi di web, sistem bilang *STOK HABIS*.%0a%0aDetail Pesanan:%0a${detailOrder}%0a%0aMohon dicek bukti transfer saya (saya lampirkan foto).`;
                     
-                    // Ganti fungsi tombol biar pas diklik lari ke WA
                     btn.onclick = function() {
-                        window.open(`https://wa.me/6287769671590?text=${pesanWA}`, '_blank'); // GANTI NO WA ADMIN DISINI
+                        window.open(`https://wa.me/6287769671590?text=${pesanWA}`, '_blank'); 
                     };
                     
                     return; // Stop proses, jangan simpan order sukses
                 }
 
-                // --- KALAU SUKSES ---
+                // --- 2. KALAU STOK AMAN, LANJUT HITUNG HARGA (ANTI-HACK) ---
+                
+                // A. Siapkan ID Order
                 let orderId = "ORD-" + Date.now().toString().slice(-6);
                 let itemsReport = window.cart.map(i => `${i.name} (${i.qty}x)`).join(', ');
 
+                // B. HITUNG ULANG TOTAL (JANGAN PERCAYA CLIENT)
+                let safeUniqueCode = window.lastUniqueCode || 0;
+                // Validasi kode unik
+                if (safeUniqueCode < 0 || safeUniqueCode > 999) safeUniqueCode = 0;
+
+                let calculatedTotal = window.cart.reduce((sum, cartItem) => {
+                    // Cari item asli di MENU_DATA (Database Lokal)
+                    let originalItem = null;
+                    window.MENU_DATA.forEach(category => {
+                        const found = category.items.find(i => i.id === cartItem.productId);
+                        if (found) originalItem = found;
+                    });
+
+                    if (originalItem) {
+                        // Hitung harga Add-ons ulang
+                        let addonsTotal = 0;
+                        cartItem.addOns.forEach(userAddon => {
+                             const asliAddon = window.ADD_ONS_DATA.find(ao => ao.id === userAddon.id);
+                             if (asliAddon) addonsTotal += asliAddon.price;
+                        });
+
+                        // Pakai HARGA ASLI + Addon Asli
+                        const realPrice = originalItem.price + addonsTotal;
+                        return sum + (realPrice * cartItem.qty);
+                    } else {
+                        return sum; 
+                    }
+                }, 0);
+
+                // Tambah kode unik
+                calculatedTotal += safeUniqueCode;
+                
+                // Sanity Check (Total gak boleh minus/nol)
+                if(calculatedTotal <= 0) calculatedTotal = 0;
+
+                // Format jadi Rupiah (Ini variabel yang tadinya error 'undefined')
+                const totalFixed = 'Rp ' + calculatedTotal.toLocaleString('id-ID');
+
+                // --- 3. SIMPAN KE FIREBASE ---
                 const ordersRef = ref(db, 'orders/' + orderId);
-                set(ordersRef, {
+                await set(ordersRef, {
                     customer: name,
                     class: cls,
                     phone: phone,
                     items: itemsReport,
                     orderDetails: window.cart,
-                    total: totalFixed,
-                    status: 'paid', // Langsung paid karena ini QRIS
+                    total: totalFixed, // Sekarang totalFixed sudah ada isinya!
+                    status: 'paid', 
                     timestamp: Date.now()
                 });
 
+                // --- 4. KIRIM KE GOOGLE SHEETS ---
                 const scriptURL = "/api/save-order";
-
-                // Siapkan data simpel untuk Sheets
                 const dataForSheet = {
                     orderId: orderId,
                     customer: name,
                     class: cls,
                     phone: phone,
                     items: itemsReport,
-                    total: document.getElementById('payment-total').innerText
+                    total: totalFixed // Kirim total yang aman
                 };
 
-                // Kirim tanpa menunggu (no-cors mode agar browser tidak blokir)
                 fetch(scriptURL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1333,6 +1324,7 @@
                 }).then(() => console.log("Data terkirim ke Sheets"))
                   .catch(err => console.error("Gagal kirim ke Sheets", err));
 
+                // --- 5. SUKSES & RESET ---
                 window.toggleModal('payment-modal');
                 alert(`✅ PESANAN BERHASIL!\nOrder ID: ${orderId}\nPesanan sudah diamankan untukmu!.`);
                 
@@ -1341,8 +1333,8 @@
                 window.location.reload();
 
             } catch (error) {
-                console.error(error);
-                alert("Terjadi kesalahan koneksi.");
+                console.error("ERROR TRANSAKSI:", error);
+                alert("Terjadi kesalahan sistem/koneksi. Cek Console.");
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
