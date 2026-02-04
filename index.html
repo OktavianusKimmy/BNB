@@ -1237,7 +1237,55 @@
                     btn.disabled = false;
                     
                     // Buat pesan WhatsApp otomatis
-                    const totalBayar = document.getElementById('payment-total').innerText;
+                    // 1. Validasi Kode Unik (Pastikan dalam range wajar)
+                    // Misalnya kode unik harus antara 10 - 99. Kalau diluar itu, berarti dihack.
+                    let safeUniqueCode = window.lastUniqueCode;
+                    if (safeUniqueCode < 1 || safeUniqueCode > 999) {
+                        console.warn("⚠️ Kode unik mencurigakan! Reset ke 0.");
+                        safeUniqueCode = 0; // Atau generate ulang
+                    }
+
+                    // 2. Hitung Total dengan RE-VERIFIKASI HARGA
+                    let calculatedTotal = window.cart.reduce((sum, cartItem) => {
+                        // A. Cari item aslinya di MENU_DATA (Database Lokal)
+                        // Kita anggap MENU_DATA adalah sumber kebenaran (Source of Truth)
+                        let originalItem = null;
+                        
+                        // Loop cari item di database lokal
+                        window.MENU_DATA.forEach(category => {
+                            const found = category.items.find(i => i.id === cartItem.productId);
+                            if (found) originalItem = found;
+                        });
+
+                        if (originalItem) {
+                            // B. Hitung harga Add-ons ulang (Jangan percaya cartItem.addOns harga)
+                            let addonsTotal = 0;
+                            cartItem.addOns.forEach(userAddon => {
+                                // Cek harga addon asli dari daftar ADD_ONS_DATA
+                                const asliAddon = window.ADD_ONS_DATA.find(ao => ao.id === userAddon.id);
+                                if (asliAddon) addonsTotal += asliAddon.price;
+                            });
+
+                            // C. Pakai HARGA ASLI dari database, abaikan harga di cartItem
+                            const realPrice = originalItem.price + addonsTotal;
+                            return sum + (realPrice * cartItem.qty);
+                            
+                        } else {
+                            return sum; // Item tidak ditemukan (mungkin dihapus admin), skip
+                        }
+                    }, 0);
+
+                    calculatedTotal += safeUniqueCode;
+
+                    // 4. Cek Batas Wajar (Sanity Check)
+                    if (calculatedTotal < 0) {
+                        alert("❌ Error: Total minus?");
+                        return;
+                    }
+
+                    // 5. Format & Simpan
+                    const totalFixed = 'Rp ' + calculatedTotal.toLocaleString('id-ID');
+
                     const detailOrder = window.cart.map(i => `${i.name} (${i.qty}x)`).join(', ');
                     const pesanWA = `Halo, saya *${name}* (${cls}).%0a%0aSaya sudah transfer *${totalBayar}* via QRIS.%0aTapi saat konfirmasi di web, sistem bilang *STOK HABIS*.%0a%0aDetail Pesanan:%0a${detailOrder}%0a%0aMohon dicek bukti transfer saya (saya lampirkan foto).`;
                     
@@ -1260,7 +1308,7 @@
                     phone: phone,
                     items: itemsReport,
                     orderDetails: window.cart,
-                    total: document.getElementById('payment-total').innerText,
+                    total: totalFixed,
                     status: 'paid', // Langsung paid karena ini QRIS
                     timestamp: Date.now()
                 });
