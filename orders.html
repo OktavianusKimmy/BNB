@@ -179,6 +179,7 @@
                 const custName = order.customer || "";
                 const custItems = order.items || "";
                 const custPhone = order.phone || "";
+                custPhone = custPhone.replace('/^0/', '62');
                 
                 const searchString = (custName + " " + custItems + " " + custPhone).toLowerCase();
                 const searchMatch = searchString.includes(searchValue);
@@ -275,7 +276,7 @@
                             <span style="color:#a4a4e0; font-size:0.85rem;">${order.class || '-'}</span>
                         </td>
                         <td>
-                            <a href="https://wa.me/${order.phone}" target="_blank" style="color:#4ade80; text-decoration:none;">
+                            <a href="https://wa.me/62${order.phone}" target="_blank" style="color:#4ade80; text-decoration:none;">
                                 ${order.phone} ↗
                             </a>
                         </td>
