@@ -2,7 +2,7 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
     try {
-        const sheetUrl = process.env.GOOGLE_SHEET_URL;
+        const sheetUrl = process.env.GOOGLE_SHEET;
         
         // Kirim ke Google Script
         const response = await fetch(sheetUrl, {
