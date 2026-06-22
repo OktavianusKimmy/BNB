@@ -6,7 +6,7 @@ export default function handler(req, res) {
     const { password } = req.body;
 
     // Bandingkan dengan password rahasia di Environment Variables
-    if (password === process.env.ADMIN_PASSWORD) {
+    if (password === process.env.ADMIN_PW) {
         // Jika cocok
         res.status(200).json({ success: true });
     } else {
