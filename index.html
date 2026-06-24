@@ -86,7 +86,7 @@
         
         /* Cart Specific Modal (Slide from right) */
         #cart-modal .modal-content {
-            position: absolute; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background-color: #24245e; transition: right 0.3s ease; display: flex; flex-direction: column;
+            z-index: 1500; position: absolute; top: 0; right: -100%; width: 100%; max-width: 400px; height: 100vh; background-color: #24245e; transition: right 0.3s ease; display: flex; flex-direction: column;
         }
         #cart-modal.active .modal-content { right: 0; }
 
@@ -95,6 +95,7 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); 
             width: 90%; max-width: 350px; background-color: #24245e; padding: 25px; border-radius: 15px; 
             border: 2px solid var(--accent-color); opacity: 0; transition: all 0.3s ease;
+            z-index: 1500;
         }
         #custom-modal.active .modal-content { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 
@@ -159,7 +160,7 @@
         /* --- MODAL PEMBAYARAN PREMIUM --- */
         /* === MODAL PEMBAYARAN PREMIUM (VERSI RINGKAS/ANTI-SCROLL) === */
         #payment-modal {
-            z-index: 200;
+            z-index: 2000;
             display: flex;
             align-items: center;
             justify-content: center;
